@@ -8,8 +8,6 @@ const STICKERS_PER_SHEET = 10;
 const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 28;
-const CUTLINE_PX = 7;
-const CUTLINE_COLOR = "#ff9abe";
 const MAX_STICKER_WIDTH = 420;
 const MAX_STICKER_HEIGHT = 360;
 
@@ -58,23 +56,13 @@ function drawSilhouette(
 }
 
 function createStickerCanvas(image: HTMLImageElement, width: number, height: number) {
-  const padding = BORDER_PX + CUTLINE_PX + 8;
+  const padding = BORDER_PX + 8;
   const sticker = document.createElement("canvas");
   sticker.width = Math.ceil(width + padding * 2);
   sticker.height = Math.ceil(height + padding * 2);
   const context = sticker.getContext("2d");
   if (!context) return sticker;
 
-  drawSilhouette(
-    context,
-    image,
-    padding,
-    padding,
-    width,
-    height,
-    BORDER_PX + CUTLINE_PX,
-    CUTLINE_COLOR,
-  );
   drawSilhouette(context, image, padding, padding, width, height, BORDER_PX, "#ffffff");
   context.drawImage(image, padding, padding, width, height);
 

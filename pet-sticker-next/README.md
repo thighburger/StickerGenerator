@@ -7,7 +7,7 @@ Next.js MVP for removing dog photo backgrounds with remove.bg and generating one
 1. Upload up to 5 images.
 2. Server API route calls remove.bg for each image.
 3. Browser repeats the returned cutouts until the sheet has 10 stickers.
-4. Browser draws white sticker borders, subtle pink cutlines, rotation, and A6 layout on Canvas.
+4. Browser draws white sticker borders, rotation, and A6 layout on Canvas.
 5. User previews and downloads the final PNG.
 
 ## Setup
@@ -34,4 +34,3 @@ Open http://localhost:3000.
 ## Deploy
 
 Deploy `pet-sticker-next/` as the Vercel project root and set `REMOVE_BG_API_KEY` in Vercel environment variables.
-
