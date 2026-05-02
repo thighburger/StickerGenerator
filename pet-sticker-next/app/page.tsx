@@ -14,7 +14,7 @@ const MASK_GAP_CELLS = 1;
 const CONTENT_WIDTH = A6_WIDTH - SAFE_MARGIN_PX * 2;
 const CONTENT_HEIGHT = A6_HEIGHT - SAFE_MARGIN_PX * 2;
 const BASE_STICKER_AREA = (CONTENT_WIDTH * CONTENT_HEIGHT) / 8.25;
-const PACK_SCALES = [1.12, 1.06, 1, 0.94, 0.88, 0.82, 0.76];
+const PACK_SCALES = [1.12, 1.06, 1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4];
 const PACK_ANCHORS = [
   { x: 232, y: 188, rotation: -7, weight: 1.18 },
   { x: 622, y: 166, rotation: 10, weight: 1 },
@@ -26,6 +26,18 @@ const PACK_ANCHORS = [
   { x: 1000, y: 850, rotation: 5, weight: 1.12 },
   { x: 330, y: 1336, rotation: -3, weight: 1.35 },
   { x: 876, y: 1342, rotation: -172, weight: 1.35 },
+];
+const FALLBACK_BOXES = [
+  { x: 76, y: 64, width: 330, height: 300, rotation: -5 },
+  { x: 456, y: 64, width: 330, height: 300, rotation: 8 },
+  { x: 834, y: 64, width: 330, height: 300, rotation: 4 },
+  { x: 76, y: 386, width: 500, height: 330, rotation: -78 },
+  { x: 664, y: 386, width: 500, height: 330, rotation: 68 },
+  { x: 76, y: 748, width: 330, height: 330, rotation: -3 },
+  { x: 456, y: 748, width: 330, height: 330, rotation: 180 },
+  { x: 834, y: 748, width: 330, height: 330, rotation: 3 },
+  { x: 86, y: 1124, width: 500, height: 560, rotation: -3 },
+  { x: 654, y: 1124, width: 500, height: 560, rotation: -172 },
 ];
 
 type Cutout = {
@@ -375,6 +387,47 @@ function packStickers(stickers: UnplacedSticker[]) {
   return placed.sort((a, b) => a.anchorIndex - b.anchorIndex);
 }
 
+function createFallbackAsset(
+  image: DrawableImage,
+  box: { x: number; y: number; width: number; height: number; rotation: number },
+  anchorIndex: number,
+) {
+  const angle = box.rotation * (Math.PI / 180);
+  let low = 0.1;
+  let high = Math.max(box.width / image.width, box.height / image.height) * 2;
+  let bestCanvas = rotateStickerCanvas(
+    createStickerCanvas(image, image.width * low, image.height * low),
+    angle,
+  );
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const scale = (low + high) / 2;
+    const stickerCanvas = createStickerCanvas(image, image.width * scale, image.height * scale);
+    const rotated = rotateStickerCanvas(stickerCanvas, angle);
+
+    if (rotated.width <= box.width && rotated.height <= box.height) {
+      low = scale;
+      bestCanvas = rotated;
+    } else {
+      high = scale;
+    }
+  }
+
+  return {
+    canvas: bestCanvas,
+    mask: createMask(bestCanvas),
+    x: box.x + (box.width - bestCanvas.width) / 2,
+    y: box.y + (box.height - bestCanvas.height) / 2,
+    anchorIndex,
+  };
+}
+
+function createFallbackAssets(images: DrawableImage[]) {
+  return images.map((image, index) => (
+    createFallbackAsset(image, FALLBACK_BOXES[index], index)
+  ));
+}
+
 async function createStickerAssets(cutouts: Cutout[]) {
   const sourceImages = await Promise.all(cutouts.map(async (cutout) => (
     trimTransparentPadding(await loadImage(cutout.url))
@@ -403,7 +456,7 @@ async function createStickerAssets(cutouts: Cutout[]) {
     if (packed) return packed;
   }
 
-  throw new Error("Could not fit 10 stickers on the sheet. Try images with transparent backgrounds.");
+  return createFallbackAssets(images);
 }
 
 async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
