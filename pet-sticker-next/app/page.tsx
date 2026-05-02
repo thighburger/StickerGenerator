@@ -11,6 +11,7 @@ const BORDER_PX = 28;
 const SHEET_MARGIN = 38;
 const STICKER_GAP = 12;
 const ROTATION_DEGREES = [-9, 6, -4, 8, -7, 4, -8, 7, -5, 9];
+const LAYOUT_SCALES = [0.82, 0.74, 0.66, 0.58, 0.5, 0.44, 0.38, 0.32];
 
 type Cutout = {
   url: string;
@@ -137,9 +138,9 @@ function createCandidatePositions(asset: StickerAsset) {
   const usableHeight = Math.max(1, maxY - SHEET_MARGIN);
   const positions: Array<{ x: number; y: number }> = [];
 
-  for (let ring = 0; ring < 6; ring += 1) {
-    const insetX = (usableWidth * ring) / 12;
-    const insetY = (usableHeight * ring) / 12;
+  for (let ring = 0; ring < 10; ring += 1) {
+    const insetX = (usableWidth * ring) / 20;
+    const insetY = (usableHeight * ring) / 20;
     const left = SHEET_MARGIN + insetX;
     const right = maxX - insetX;
     const top = SHEET_MARGIN + insetY;
@@ -184,15 +185,7 @@ function packStickers(assets: StickerAsset[]) {
   return placed;
 }
 
-async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
-  const context = canvas.getContext("2d");
-  if (!context || cutouts.length === 0) return;
-
-  canvas.width = A6_WIDTH;
-  canvas.height = A6_HEIGHT;
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, A6_WIDTH, A6_HEIGHT);
-
+async function createStickerAssets(cutouts: Cutout[], layoutScale: number) {
   const assets: StickerAsset[] = [];
   const stickers = repeatedCutouts(cutouts);
   const targetArea = ((A6_WIDTH - SHEET_MARGIN * 2) * (A6_HEIGHT - SHEET_MARGIN * 2)) / 10;
@@ -202,7 +195,7 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
     const image = await loadImage(cutout.url);
     const angle = ROTATION_DEGREES[index % ROTATION_DEGREES.length] * (Math.PI / 180);
     const imageArea = image.naturalWidth * image.naturalHeight;
-    const scale = Math.min(Math.sqrt(targetArea / imageArea) * 0.82, 1.25);
+    const scale = Math.min(Math.sqrt(targetArea / imageArea) * layoutScale, 1.25);
     const width = image.naturalWidth * Math.max(0.1, scale);
     const height = image.naturalHeight * Math.max(0.1, scale);
     const stickerCanvas = createStickerCanvas(image, width, height);
@@ -215,7 +208,28 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
     });
   }
 
-  for (const sticker of packStickers(assets)) {
+  return assets;
+}
+
+async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
+  const context = canvas.getContext("2d");
+  if (!context || cutouts.length === 0) return;
+
+  canvas.width = A6_WIDTH;
+  canvas.height = A6_HEIGHT;
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, A6_WIDTH, A6_HEIGHT);
+
+  let placed: PlacedSticker[] = [];
+  for (const layoutScale of LAYOUT_SCALES) {
+    const assets = await createStickerAssets(cutouts, layoutScale);
+    placed = packStickers(assets);
+    if (placed.length === STICKERS_PER_SHEET) {
+      break;
+    }
+  }
+
+  for (const sticker of placed) {
     context.save();
     context.translate(sticker.x + sticker.width / 2, sticker.y + sticker.height / 2);
     context.rotate(sticker.angle);
