@@ -10,6 +10,7 @@ const A6_HEIGHT = 1748;
 const BORDER_PX = 12;
 const SAFE_MARGIN_PX = 64;
 const PACK_CELL_PX = 12;
+const COVERAGE_CELL_PX = 12;
 const MASK_GAP_CELLS = 1;
 const CONTENT_WIDTH = A6_WIDTH - SAFE_MARGIN_PX * 2;
 const CONTENT_HEIGHT = A6_HEIGHT - SAFE_MARGIN_PX * 2;
@@ -26,6 +27,18 @@ const PACK_ANCHORS = [
   { x: 1000, y: 850, rotation: 5, weight: 1.12 },
   { x: 330, y: 1336, rotation: -3, weight: 1.35 },
   { x: 876, y: 1342, rotation: -172, weight: 1.35 },
+];
+const DENSE_LAYOUT_BOXES = [
+  { x: 64, y: 64, width: 540, height: 360, rotation: -4 },
+  { x: 636, y: 64, width: 540, height: 360, rotation: 5 },
+  { x: 64, y: 440, width: 360, height: 360, rotation: -7 },
+  { x: 470, y: 440, width: 300, height: 360, rotation: 8 },
+  { x: 816, y: 440, width: 360, height: 360, rotation: 5 },
+  { x: 64, y: 816, width: 540, height: 360, rotation: 3 },
+  { x: 636, y: 816, width: 540, height: 360, rotation: -5 },
+  { x: 64, y: 1192, width: 360, height: 492, rotation: -4 },
+  { x: 470, y: 1192, width: 300, height: 492, rotation: 180 },
+  { x: 816, y: 1192, width: 360, height: 492, rotation: -172 },
 ];
 const FALLBACK_BOXES = [
   { x: 76, y: 64, width: 330, height: 300, rotation: -5 },
@@ -56,10 +69,108 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 type DrawableImage = HTMLImageElement | HTMLCanvasElement;
 
-function trimTransparentPadding(image: HTMLImageElement) {
+function imageSize(image: DrawableImage) {
+  if (image instanceof HTMLImageElement) {
+    return {
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+    };
+  }
+
+  return {
+    width: image.width,
+    height: image.height,
+  };
+}
+
+function removeSolidEdgeMatte(image: HTMLImageElement) {
   const source = document.createElement("canvas");
   source.width = image.naturalWidth;
   source.height = image.naturalHeight;
+  const sourceContext = source.getContext("2d");
+  if (!sourceContext) return image;
+
+  sourceContext.drawImage(image, 0, 0);
+  const pixels = sourceContext.getImageData(0, 0, source.width, source.height);
+  let hasTransparency = false;
+
+  for (let index = 3; index < pixels.data.length; index += 4) {
+    if (pixels.data[index] < 250) {
+      hasTransparency = true;
+      break;
+    }
+  }
+
+  if (hasTransparency) return source;
+
+  const cornerIndexes = [
+    0,
+    source.width - 1,
+    (source.height - 1) * source.width,
+    source.height * source.width - 1,
+  ].map((pixelIndex) => pixelIndex * 4);
+  const cornerColors = cornerIndexes.map((index) => [
+    pixels.data[index],
+    pixels.data[index + 1],
+    pixels.data[index + 2],
+  ]);
+  const backgroundThreshold = 26;
+
+  function isBackground(pixelIndex: number) {
+    const red = pixels.data[pixelIndex];
+    const green = pixels.data[pixelIndex + 1];
+    const blue = pixels.data[pixelIndex + 2];
+
+    return cornerColors.some(([cornerRed, cornerGreen, cornerBlue]) => (
+      Math.abs(red - cornerRed) <= backgroundThreshold
+      && Math.abs(green - cornerGreen) <= backgroundThreshold
+      && Math.abs(blue - cornerBlue) <= backgroundThreshold
+    ));
+  }
+
+  const visited = new Uint8Array(source.width * source.height);
+  const queue: number[] = [];
+
+  function enqueue(x: number, y: number) {
+    if (x < 0 || y < 0 || x >= source.width || y >= source.height) return;
+    const point = y * source.width + x;
+    if (visited[point]) return;
+    const pixelIndex = point * 4;
+    if (!isBackground(pixelIndex)) return;
+    visited[point] = 1;
+    queue.push(point);
+  }
+
+  for (let x = 0; x < source.width; x += 1) {
+    enqueue(x, 0);
+    enqueue(x, source.height - 1);
+  }
+
+  for (let y = 0; y < source.height; y += 1) {
+    enqueue(0, y);
+    enqueue(source.width - 1, y);
+  }
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const point = queue[index];
+    const x = point % source.width;
+    const y = Math.floor(point / source.width);
+    pixels.data[point * 4 + 3] = 0;
+    enqueue(x + 1, y);
+    enqueue(x - 1, y);
+    enqueue(x, y + 1);
+    enqueue(x, y - 1);
+  }
+
+  sourceContext.putImageData(pixels, 0, 0);
+  return source;
+}
+
+function trimTransparentPadding(image: DrawableImage) {
+  const size = imageSize(image);
+  const source = document.createElement("canvas");
+  source.width = size.width;
+  source.height = size.height;
   const sourceContext = source.getContext("2d");
   if (!sourceContext) return image;
 
@@ -428,16 +539,85 @@ function createFallbackAssets(images: DrawableImage[]) {
   ));
 }
 
+function createDenseAssets(images: DrawableImage[]) {
+  return images.map((image, index) => (
+    createFallbackAsset(image, DENSE_LAYOUT_BOXES[index], index)
+  ));
+}
+
+function imageAspect(image: DrawableImage) {
+  const size = imageSize(image);
+  return size.width / size.height;
+}
+
+function chooseImagesForDenseLayout(sourceImages: DrawableImage[]) {
+  const usageCounts = sourceImages.map(() => 0);
+
+  return DENSE_LAYOUT_BOXES.map((box) => {
+    const boxAspect = box.width / box.height;
+    let bestIndex = 0;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (let index = 0; index < sourceImages.length; index += 1) {
+      const aspectScore = Math.abs(Math.log(imageAspect(sourceImages[index]) / boxAspect));
+      const usagePenalty = usageCounts[index] * 0.34;
+      const score = aspectScore + usagePenalty;
+
+      if (score < bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+
+    usageCounts[bestIndex] += 1;
+    return sourceImages[bestIndex];
+  });
+}
+
+function estimateSheetFill(assets: StickerAsset[]) {
+  const cols = Math.ceil(CONTENT_WIDTH / COVERAGE_CELL_PX);
+  const rows = Math.ceil(CONTENT_HEIGHT / COVERAGE_CELL_PX);
+  const occupied = new Uint8Array(cols * rows);
+
+  for (const asset of assets) {
+    const left = clamp(asset.x, SAFE_MARGIN_PX, A6_WIDTH - SAFE_MARGIN_PX);
+    const top = clamp(asset.y, SAFE_MARGIN_PX, A6_HEIGHT - SAFE_MARGIN_PX);
+    const right = clamp(asset.x + asset.canvas.width, SAFE_MARGIN_PX, A6_WIDTH - SAFE_MARGIN_PX);
+    const bottom = clamp(asset.y + asset.canvas.height, SAFE_MARGIN_PX, A6_HEIGHT - SAFE_MARGIN_PX);
+    const startX = Math.floor((left - SAFE_MARGIN_PX) / COVERAGE_CELL_PX);
+    const startY = Math.floor((top - SAFE_MARGIN_PX) / COVERAGE_CELL_PX);
+    const endX = Math.ceil((right - SAFE_MARGIN_PX) / COVERAGE_CELL_PX);
+    const endY = Math.ceil((bottom - SAFE_MARGIN_PX) / COVERAGE_CELL_PX);
+
+    for (let y = startY; y < endY; y += 1) {
+      for (let x = startX; x < endX; x += 1) {
+        if (x >= 0 && y >= 0 && x < cols && y < rows) {
+          occupied[y * cols + x] = 1;
+        }
+      }
+    }
+  }
+
+  const filled = occupied.reduce((total, cell) => total + cell, 0);
+  return filled / occupied.length;
+}
+
 async function createStickerAssets(cutouts: Cutout[]) {
   const sourceImages = await Promise.all(cutouts.map(async (cutout) => (
-    trimTransparentPadding(await loadImage(cutout.url))
+    trimTransparentPadding(removeSolidEdgeMatte(await loadImage(cutout.url)))
   )));
-  const images = Array.from({ length: STICKERS_PER_SHEET }, (_, index) => (
+  const repeatedImages = Array.from({ length: STICKERS_PER_SHEET }, (_, index) => (
     sourceImages[index % sourceImages.length]
   ));
+  const images = chooseImagesForDenseLayout(sourceImages);
+
+  const denseAssets = createDenseAssets(images);
+  if (estimateSheetFill(denseAssets) >= 0.8) {
+    return denseAssets;
+  }
 
   for (const globalScale of PACK_SCALES) {
-    const unplaced = images.map((image, index) => {
+    const unplaced = repeatedImages.map((image, index) => {
       const anchor = PACK_ANCHORS[index];
       const targetArea = BASE_STICKER_AREA * anchor.weight * globalScale * globalScale;
       const { width, height } = targetSizeForImage(image, targetArea);
@@ -453,15 +633,15 @@ async function createStickerAssets(cutouts: Cutout[]) {
       };
     });
     const packed = packStickers(unplaced);
-    if (packed) return packed;
+    if (packed && estimateSheetFill(packed) >= 0.8) return packed;
   }
 
-  return createFallbackAssets(images);
+  return denseAssets.length ? denseAssets : createFallbackAssets(repeatedImages);
 }
 
 async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
   const context = canvas.getContext("2d");
-  if (!context || cutouts.length === 0) return;
+  if (!context || cutouts.length === 0) return 0;
 
   canvas.width = A6_WIDTH;
   canvas.height = A6_HEIGHT;
@@ -473,6 +653,8 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
   for (const sticker of assets) {
     context.drawImage(sticker.canvas, sticker.x, sticker.y);
   }
+
+  return estimateSheetFill(assets);
 }
 
 export default function Home() {
@@ -573,8 +755,8 @@ export default function Home() {
       setCutouts(nextCutouts);
       const canvas = canvasRef.current;
       if (!canvas) throw new Error("Canvas is not ready.");
-      await drawSheet(canvas, nextCutouts);
-      setStatus("Sticker sheet ready.");
+      const fill = await drawSheet(canvas, nextCutouts);
+      setStatus(`Sticker sheet ready. Fill ${Math.round(fill * 100)}%.`);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not generate sticker sheet.";
       setError(message);
@@ -602,8 +784,8 @@ export default function Home() {
       setCutouts(nextCutouts);
       const canvas = canvasRef.current;
       if (!canvas) throw new Error("Canvas is not ready.");
-      await drawSheet(canvas, nextCutouts);
-      setStatus("Test sticker sheet ready.");
+      const fill = await drawSheet(canvas, nextCutouts);
+      setStatus(`Test sticker sheet ready. Fill ${Math.round(fill * 100)}%.`);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Could not generate test sticker sheet.";
       setError(message);
