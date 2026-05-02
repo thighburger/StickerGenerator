@@ -1,0 +1,154 @@
+.page {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  gap: 28px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.panel {
+  align-self: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 20px;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.subtitle {
+  margin: 0 0 20px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.dropzone {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  padding: 20px;
+  border: 1px dashed #d9a6bb;
+  border-radius: 8px;
+  background: #fff5f9;
+  text-align: center;
+}
+
+.fileInput {
+  width: 100%;
+  max-width: 260px;
+}
+
+.meta {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.thumb {
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.primary,
+.secondary {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+.primary {
+  flex: 1;
+  background: var(--accent);
+  color: white;
+}
+
+.secondary {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--foreground);
+}
+
+.status {
+  min-height: 22px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.error {
+  color: var(--accent-strong);
+}
+
+.previewArea {
+  min-width: 0;
+}
+
+.previewFrame {
+  display: grid;
+  place-items: center;
+  min-height: 72vh;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.canvas {
+  width: min(100%, 460px);
+  height: auto;
+  border: 1px solid #eee;
+  box-shadow: 0 12px 40px rgba(63, 35, 45, 0.12);
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .page {
+    padding: 18px;
+  }
+
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .previewFrame {
+    min-height: 480px;
+  }
+}
+
