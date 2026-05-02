@@ -1,78 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
-
-export const runtime = "nodejs";
+import { NextResponse } from "next/server";
 
 const REMOVE_BG_ENDPOINT = "https://api.remove.bg/v1.0/removebg";
-const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   const apiKey = process.env.REMOVE_BG_API_KEY;
+
   if (!apiKey) {
     return NextResponse.json(
-      { error: "REMOVE_BG_API_KEY is not configured." },
+      { error: "Missing REMOVE_BG_API_KEY in .env.local." },
       { status: 500 },
     );
   }
 
-  const formData = await request.formData();
-  const image = formData.get("image");
+  const incomingForm = await request.formData();
+  const image = incomingForm.get("image");
 
   if (!(image instanceof File)) {
-    return NextResponse.json({ error: "Upload an image file." }, { status: 400 });
-  }
-
-  if (!image.type.startsWith("image/")) {
-    return NextResponse.json({ error: "Unsupported file type." }, { status: 400 });
-  }
-
-  if (image.size > MAX_IMAGE_BYTES) {
     return NextResponse.json(
-      { error: "Image is too large. Use an image under 12 MB." },
+      { error: "Upload one image file." },
       { status: 400 },
     );
   }
 
-  const removeBgFormData = new FormData();
-  removeBgFormData.append("image_file", image, image.name || "upload.png");
-  removeBgFormData.append("size", "auto");
-  removeBgFormData.append("format", "png");
+  const removeBgForm = new FormData();
+  removeBgForm.append("image_file", image, image.name || "dog-photo.png");
+  removeBgForm.append("size", "auto");
+  removeBgForm.append("format", "png");
 
-  let response: Response;
-  try {
-    response = await fetch(REMOVE_BG_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "X-Api-Key": apiKey,
-      },
-      body: removeBgFormData,
-    });
-  } catch {
-    return NextResponse.json(
-      { error: "Could not reach remove.bg." },
-      { status: 502 },
-    );
-  }
+  const response = await fetch(REMOVE_BG_ENDPOINT, {
+    method: "POST",
+    headers: {
+      "X-Api-Key": apiKey,
+    },
+    body: removeBgForm,
+  });
 
   if (!response.ok) {
-    const detail = await response.text();
-    const message =
-      response.status === 429
-        ? "remove.bg rate limit exceeded. Wait and try fewer images."
-        : `remove.bg failed with HTTP ${response.status}.`;
-
+    const detail = await response.text().catch(() => "");
     return NextResponse.json(
-      { error: message, detail: detail.slice(0, 500) },
+      { error: `remove.bg failed: ${detail || response.statusText}` },
       { status: response.status },
     );
   }
 
-  const png = await response.arrayBuffer();
-  return new NextResponse(png, {
-    status: 200,
+  const cutout = await response.arrayBuffer();
+
+  return new Response(cutout, {
     headers: {
       "Content-Type": "image/png",
       "Cache-Control": "no-store",
     },
   });
 }
-

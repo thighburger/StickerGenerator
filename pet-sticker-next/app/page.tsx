@@ -9,12 +9,12 @@ const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 12;
 const SAFE_MARGIN_PX = 64;
-const PACK_CELL_PX = 8;
+const PACK_CELL_PX = 12;
 const MASK_GAP_CELLS = 1;
 const CONTENT_WIDTH = A6_WIDTH - SAFE_MARGIN_PX * 2;
 const CONTENT_HEIGHT = A6_HEIGHT - SAFE_MARGIN_PX * 2;
 const BASE_STICKER_AREA = (CONTENT_WIDTH * CONTENT_HEIGHT) / 8.25;
-const PACK_SCALES = [1.2, 1.12, 1.04, 0.98, 0.92, 0.86, 0.8, 0.74];
+const PACK_SCALES = [1.12, 1.06, 1, 0.94, 0.88, 0.82, 0.76];
 const PACK_ANCHORS = [
   { x: 232, y: 188, rotation: -7, weight: 1.18 },
   { x: 622, y: 166, rotation: 10, weight: 1 },
@@ -135,12 +135,6 @@ function createStickerCanvas(image: DrawableImage, width: number, height: number
   return sticker;
 }
 
-function repeatedCutouts(cutouts: Cutout[]) {
-  return Array.from({ length: STICKERS_PER_SHEET }, (_, index) => {
-    return cutouts[index % cutouts.length];
-  });
-}
-
 type StickerAsset = {
   canvas: HTMLCanvasElement;
   mask: StickerMask;
@@ -207,14 +201,14 @@ function createMask(canvas: HTMLCanvasElement): StickerMask {
   if (!context) return { widthCells, heightCells, points: [] };
 
   const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-  const occupied = new Set<string>();
+  const occupied = new Uint8Array(widthCells * heightCells);
 
   for (let y = 0; y < canvas.height; y += PACK_CELL_PX) {
     for (let x = 0; x < canvas.width; x += PACK_CELL_PX) {
       let hasInk = false;
 
-      for (let sampleY = y; sampleY < Math.min(y + PACK_CELL_PX, canvas.height); sampleY += 2) {
-        for (let sampleX = x; sampleX < Math.min(x + PACK_CELL_PX, canvas.width); sampleX += 2) {
+      for (let sampleY = y; sampleY < Math.min(y + PACK_CELL_PX, canvas.height); sampleY += 4) {
+        for (let sampleX = x; sampleX < Math.min(x + PACK_CELL_PX, canvas.width); sampleX += 4) {
           const alpha = pixels.data[(sampleY * canvas.width + sampleX) * 4 + 3];
           if (alpha > 10) {
             hasInk = true;
@@ -233,7 +227,7 @@ function createMask(canvas: HTMLCanvasElement): StickerMask {
             const nextX = cellX + gapX;
             const nextY = cellY + gapY;
             if (nextX >= 0 && nextY >= 0 && nextX < widthCells && nextY < heightCells) {
-              occupied.add(`${nextX},${nextY}`);
+              occupied[nextY * widthCells + nextX] = 1;
             }
           }
         }
@@ -241,13 +235,19 @@ function createMask(canvas: HTMLCanvasElement): StickerMask {
     }
   }
 
+  const points: Array<[number, number]> = [];
+  for (let y = 0; y < heightCells; y += 1) {
+    for (let x = 0; x < widthCells; x += 1) {
+      if (occupied[y * widthCells + x]) {
+        points.push([x, y]);
+      }
+    }
+  }
+
   return {
     widthCells,
     heightCells,
-    points: Array.from(occupied, (key) => {
-      const [x, y] = key.split(",").map(Number);
-      return [x, y] as [number, number];
-    }),
+    points,
   };
 }
 
@@ -284,11 +284,21 @@ function markPlaced(
   }
 }
 
-function candidatePositions(sticker: UnplacedSticker, cols: number, rows: number) {
+function findPosition(
+  occupancy: Uint8Array,
+  cols: number,
+  rows: number,
+  sticker: UnplacedSticker,
+) {
   const minX = Math.ceil(SAFE_MARGIN_PX / PACK_CELL_PX);
   const minY = Math.ceil(SAFE_MARGIN_PX / PACK_CELL_PX);
   const maxX = Math.floor((A6_WIDTH - SAFE_MARGIN_PX - sticker.canvas.width) / PACK_CELL_PX);
   const maxY = Math.floor((A6_HEIGHT - SAFE_MARGIN_PX - sticker.canvas.height) / PACK_CELL_PX);
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
   const anchorX = clamp(
     Math.round((sticker.anchorX - sticker.canvas.width / 2) / PACK_CELL_PX),
     minX,
@@ -300,42 +310,42 @@ function candidatePositions(sticker: UnplacedSticker, cols: number, rows: number
     maxY,
   );
   const seen = new Set<string>();
-  const candidates: Array<{ x: number; y: number; score: number }> = [];
 
-  function add(x: number, y: number) {
-    if (x < minX || y < minY || x > maxX || y > maxY) return;
+  function test(x: number, y: number) {
+    if (x < minX || y < minY || x > maxX || y > maxY) return null;
     const key = `${x},${y}`;
-    if (seen.has(key)) return;
+    if (seen.has(key)) return null;
     seen.add(key);
 
-    const centerX = x + sticker.mask.widthCells / 2;
-    const centerY = y + sticker.mask.heightCells / 2;
-    const targetCenterX = sticker.anchorX / PACK_CELL_PX;
-    const targetCenterY = sticker.anchorY / PACK_CELL_PX;
-    const pageCenterX = cols / 2;
-    const pageCenterY = rows / 2;
-    const anchorDistance = Math.hypot(centerX - targetCenterX, centerY - targetCenterY);
-    const centerPull = Math.hypot(centerX - pageCenterX, centerY - pageCenterY) * 0.08;
-    candidates.push({ x, y, score: anchorDistance + centerPull });
+    if (canPlace(occupancy, cols, rows, sticker.mask, x, y)) {
+      return { x, y };
+    }
+
+    return null;
   }
 
   const maxRadius = Math.max(cols, rows);
-  for (let radius = 0; radius <= maxRadius; radius += 1) {
+  for (let radius = 0; radius <= maxRadius; radius += 2) {
     for (let offset = -radius; offset <= radius; offset += 2) {
-      add(anchorX + offset, anchorY - radius);
-      add(anchorX + offset, anchorY + radius);
-      add(anchorX - radius, anchorY + offset);
-      add(anchorX + radius, anchorY + offset);
+      const top = test(anchorX + offset, anchorY - radius);
+      if (top) return top;
+      const bottom = test(anchorX + offset, anchorY + radius);
+      if (bottom) return bottom;
+      const left = test(anchorX - radius, anchorY + offset);
+      if (left) return left;
+      const right = test(anchorX + radius, anchorY + offset);
+      if (right) return right;
     }
   }
 
-  for (let y = minY; y <= maxY; y += 3) {
-    for (let x = minX; x <= maxX; x += 3) {
-      add(x, y);
+  for (let y = minY; y <= maxY; y += 2) {
+    for (let x = minX; x <= maxX; x += 2) {
+      const position = test(x, y);
+      if (position) return position;
     }
   }
 
-  return candidates.sort((a, b) => a.score - b.score);
+  return null;
 }
 
 function packStickers(stickers: UnplacedSticker[]) {
@@ -346,10 +356,7 @@ function packStickers(stickers: UnplacedSticker[]) {
   const sorted = [...stickers].sort((a, b) => b.mask.points.length - a.mask.points.length);
 
   for (const sticker of sorted) {
-    const candidates = candidatePositions(sticker, cols, rows);
-    const position = candidates.find((candidate) => (
-      canPlace(occupancy, cols, rows, sticker.mask, candidate.x, candidate.y)
-    ));
+    const position = findPosition(occupancy, cols, rows, sticker);
 
     if (!position) {
       return null;
@@ -369,10 +376,12 @@ function packStickers(stickers: UnplacedSticker[]) {
 }
 
 async function createStickerAssets(cutouts: Cutout[]) {
-  const stickers = repeatedCutouts(cutouts);
-  const images = await Promise.all(stickers.map(async (cutout) => (
+  const sourceImages = await Promise.all(cutouts.map(async (cutout) => (
     trimTransparentPadding(await loadImage(cutout.url))
   )));
+  const images = Array.from({ length: STICKERS_PER_SHEET }, (_, index) => (
+    sourceImages[index % sourceImages.length]
+  ));
 
   for (const globalScale of PACK_SCALES) {
     const unplaced = images.map((image, index) => {
