@@ -29,16 +29,16 @@ const PACK_ANCHORS = [
   { x: 876, y: 1342, rotation: -172, weight: 1.35 },
 ];
 const DENSE_LAYOUT_BOXES = [
-  { x: 64, y: 64, width: 540, height: 360, rotation: -4 },
-  { x: 636, y: 64, width: 540, height: 360, rotation: 5 },
-  { x: 64, y: 440, width: 360, height: 360, rotation: -7 },
-  { x: 470, y: 440, width: 300, height: 360, rotation: 8 },
-  { x: 816, y: 440, width: 360, height: 360, rotation: 5 },
-  { x: 64, y: 816, width: 540, height: 360, rotation: 3 },
-  { x: 636, y: 816, width: 540, height: 360, rotation: -5 },
-  { x: 64, y: 1192, width: 360, height: 492, rotation: -4 },
-  { x: 470, y: 1192, width: 300, height: 492, rotation: 180 },
-  { x: 816, y: 1192, width: 360, height: 492, rotation: -172 },
+  { x: 64, y: 64, width: 760, height: 360, rotation: 90 },
+  { x: 824, y: 64, width: 352, height: 360, rotation: -5 },
+  { x: 64, y: 424, width: 616, height: 400, rotation: 90 },
+  { x: 680, y: 424, width: 496, height: 400, rotation: -5 },
+  { x: 64, y: 824, width: 600, height: 400, rotation: 90 },
+  { x: 664, y: 824, width: 250, height: 400, rotation: 0 },
+  { x: 914, y: 824, width: 262, height: 400, rotation: 0 },
+  { x: 64, y: 1224, width: 560, height: 460, rotation: 90 },
+  { x: 624, y: 1224, width: 300, height: 460, rotation: 0 },
+  { x: 924, y: 1224, width: 252, height: 460, rotation: 0 },
 ];
 const FALLBACK_BOXES = [
   { x: 76, y: 64, width: 330, height: 300, rotation: -5 },
@@ -555,12 +555,16 @@ function chooseImagesForDenseLayout(sourceImages: DrawableImage[]) {
 
   return DENSE_LAYOUT_BOXES.map((box) => {
     const boxAspect = box.width / box.height;
+    const rotation = Math.abs(box.rotation) % 180;
+    const isSidewaysSlot = rotation >= 55 && rotation <= 125;
     let bestIndex = 0;
     let bestScore = Number.POSITIVE_INFINITY;
 
     for (let index = 0; index < sourceImages.length; index += 1) {
-      const aspectScore = Math.abs(Math.log(imageAspect(sourceImages[index]) / boxAspect));
-      const usagePenalty = usageCounts[index] * 0.34;
+      const aspect = imageAspect(sourceImages[index]);
+      const effectiveAspect = isSidewaysSlot ? 1 / aspect : aspect;
+      const aspectScore = Math.abs(Math.log(effectiveAspect / boxAspect));
+      const usagePenalty = usageCounts[index] * 0.22;
       const score = aspectScore + usagePenalty;
 
       if (score < bestScore) {
