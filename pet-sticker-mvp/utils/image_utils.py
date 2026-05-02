@@ -1,0 +1,2 @@
+"""Shared image utility helpers."""
+
