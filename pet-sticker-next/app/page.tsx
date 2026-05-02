@@ -8,18 +8,18 @@ const STICKERS_PER_SHEET = 10;
 const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 28;
-const ROTATION_DEGREES = [-10, 7, -5, 9, -7, 5, -8, 8, -6, 10];
+const ROTATION_DEGREES = [-7, 5, -4, 6, -5, 4, -6, 5, -4, 7];
 const STICKER_SLOTS = [
-  { x: 44, y: 34, width: 430, height: 330 },
-  { x: 520, y: 44, width: 342, height: 300 },
-  { x: 874, y: 92, width: 330, height: 340 },
-  { x: 58, y: 430, width: 360, height: 330 },
-  { x: 430, y: 396, width: 380, height: 336 },
-  { x: 842, y: 488, width: 350, height: 370 },
-  { x: 64, y: 782, width: 370, height: 356 },
-  { x: 472, y: 820, width: 340, height: 340 },
-  { x: 838, y: 924, width: 358, height: 374 },
-  { x: 360, y: 1246, width: 520, height: 416 },
+  { x: 24, y: 24, width: 378, height: 386 },
+  { x: 430, y: 16, width: 380, height: 398 },
+  { x: 838, y: 26, width: 378, height: 386 },
+  { x: 48, y: 414, width: 540, height: 410 },
+  { x: 650, y: 414, width: 540, height: 410 },
+  { x: 24, y: 826, width: 378, height: 386 },
+  { x: 430, y: 818, width: 380, height: 398 },
+  { x: 838, y: 828, width: 378, height: 386 },
+  { x: 50, y: 1218, width: 540, height: 500 },
+  { x: 650, y: 1218, width: 540, height: 500 },
 ];
 
 type Cutout = {
