@@ -8,11 +8,29 @@ import gradio as gr
 from PIL import Image
 
 from config import ensure_runtime_dirs, get_settings
+from services.bg_remove import build_background_removal_provider
+from services.export import export_png
+from services.layout import compose_a6_sheet
+from services.sticker import create_sticker
 
 
 def generate_sticker_sheet(files: list[str | Path]) -> tuple[Image.Image | None, str | None]:
     """Generate a sticker sheet preview and downloadable PNG path."""
-    raise gr.Error("Sticker generation pipeline is not connected yet.")
+    if not files:
+        raise gr.Error("Upload at least one dog photo.")
+
+    settings = get_settings()
+    ensure_runtime_dirs(settings)
+    provider = build_background_removal_provider(settings)
+
+    stickers: list[Image.Image] = []
+    for file_path in files:
+        cutout = provider.remove_background(Path(file_path))
+        stickers.append(create_sticker(cutout, settings=settings))
+
+    sheet = compose_a6_sheet(stickers, settings=settings)
+    output_path = export_png(sheet, settings.output_dir)
+    return sheet, str(output_path)
 
 
 def _generate_for_ui(files: list[str | Path] | None) -> tuple[Image.Image | None, str | None, str]:
