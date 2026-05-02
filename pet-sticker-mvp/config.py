@@ -33,6 +33,9 @@ class Settings:
     remove_bg_api_key: str | None
     remove_bg_endpoint: str
     remove_bg_timeout_seconds: int
+    remove_bg_max_retries: int
+    remove_bg_retry_delay_seconds: float
+    remove_bg_request_delay_seconds: float
     temp_dir: Path
     output_dir: Path
     a6_width_px: int
@@ -58,6 +61,9 @@ def get_settings() -> Settings:
         remove_bg_api_key=os.getenv("REMOVE_BG_API_KEY"),
         remove_bg_endpoint=os.getenv("REMOVE_BG_ENDPOINT", REMOVE_BG_ENDPOINT),
         remove_bg_timeout_seconds=int(os.getenv("REMOVE_BG_TIMEOUT_SECONDS", "60")),
+        remove_bg_max_retries=int(os.getenv("REMOVE_BG_MAX_RETRIES", "2")),
+        remove_bg_retry_delay_seconds=float(os.getenv("REMOVE_BG_RETRY_DELAY_SECONDS", "5")),
+        remove_bg_request_delay_seconds=float(os.getenv("REMOVE_BG_REQUEST_DELAY_SECONDS", "1.5")),
         temp_dir=TEMP_DIR,
         output_dir=OUTPUT_DIR,
         a6_width_px=a6_width_px,

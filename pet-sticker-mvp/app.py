@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from time import sleep
 
 import gradio as gr
 from PIL import Image
@@ -11,6 +12,7 @@ from config import ensure_runtime_dirs, get_settings
 from services.bg_remove import (
     BackgroundRemovalError,
     MissingApiKeyError,
+    RateLimitError,
     build_background_removal_provider,
 )
 from services.export import export_png
@@ -69,8 +71,14 @@ def generate_sticker_sheet(files: list[UploadedFile] | UploadedFile | None) -> t
     stickers: list[Image.Image] = []
     for index, image_path in enumerate(image_paths, start=1):
         try:
+            if index > 1 and settings.remove_bg_request_delay_seconds > 0:
+                sleep(settings.remove_bg_request_delay_seconds)
             cutout = provider.remove_background(image_path)
             stickers.append(create_sticker(cutout, settings=settings))
+        except RateLimitError as exc:
+            raise PipelineError(
+                f"Image {index} ({image_path.name}) failed: {exc}"
+            ) from exc
         except (BackgroundRemovalError, ImageValidationError) as exc:
             raise PipelineError(f"Image {index} ({image_path.name}) failed: {exc}") from exc
 

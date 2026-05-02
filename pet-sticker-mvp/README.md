@@ -52,6 +52,8 @@ python app.py
 
 The happy path requires a valid `REMOVE_BG_API_KEY`. Without a key, the app still starts and shows a friendly generation error.
 
+If remove.bg returns a rate-limit error, wait and try fewer images. The app retries short 429 responses automatically and waits briefly between uploaded images. You can tune this with `REMOVE_BG_MAX_RETRIES`, `REMOVE_BG_RETRY_DELAY_SECONDS`, and `REMOVE_BG_REQUEST_DELAY_SECONDS` in `.env`.
+
 ## Project Structure
 
 ```text
