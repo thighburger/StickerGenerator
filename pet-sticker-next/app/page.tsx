@@ -8,8 +8,11 @@ const STICKERS_PER_SHEET = 10;
 const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 28;
-const MAX_STICKER_WIDTH = 420;
-const MAX_STICKER_HEIGHT = 360;
+const SHEET_MARGIN_X = 52;
+const SHEET_MARGIN_Y = 56;
+const CELL_GAP_X = 18;
+const CELL_GAP_Y = 14;
+const ROTATION_DEGREES = [-4, 3, -2, 4, -3, 2, -4, 3, -2, 4];
 
 type Cutout = {
   url: string;
@@ -87,32 +90,37 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
   const stickers = repeatedCutouts(cutouts);
   const columns = 2;
   const rows = 5;
-  const marginX = 88;
-  const marginY = 76;
-  const gapX = 54;
-  const gapY = 22;
-  const cellWidth = (A6_WIDTH - marginX * 2 - gapX) / columns;
-  const cellHeight = (A6_HEIGHT - marginY * 2 - gapY * (rows - 1)) / rows;
+  const cellWidth = (A6_WIDTH - SHEET_MARGIN_X * 2 - CELL_GAP_X) / columns;
+  const cellHeight = (A6_HEIGHT - SHEET_MARGIN_Y * 2 - CELL_GAP_Y * (rows - 1)) / rows;
 
   for (let index = 0; index < stickers.length; index += 1) {
     const cutout = stickers[index];
     const image = await loadImage(cutout.url);
+    const angle = ROTATION_DEGREES[index % ROTATION_DEGREES.length] * (Math.PI / 180);
+    const padding = BORDER_PX + 8;
+    const availableStickerWidth = cellWidth - 8;
+    const availableStickerHeight = cellHeight - 8;
+    const cos = Math.abs(Math.cos(angle));
+    const sin = Math.abs(Math.sin(angle));
+    const maxImageWidth =
+      (availableStickerWidth * cos - availableStickerHeight * sin) / (cos * cos - sin * sin) -
+      padding * 2;
+    const maxImageHeight =
+      (availableStickerHeight * cos - availableStickerWidth * sin) / (cos * cos - sin * sin) -
+      padding * 2;
     const scale = Math.min(
-      MAX_STICKER_WIDTH / image.naturalWidth,
-      MAX_STICKER_HEIGHT / image.naturalHeight,
-      cellWidth * 0.72 / image.naturalWidth,
-      cellHeight * 0.72 / image.naturalHeight,
+      maxImageWidth / image.naturalWidth,
+      maxImageHeight / image.naturalHeight,
       1,
     );
-    const width = image.naturalWidth * scale;
-    const height = image.naturalHeight * scale;
+    const width = image.naturalWidth * Math.max(0.1, scale);
+    const height = image.naturalHeight * Math.max(0.1, scale);
     const row = Math.floor(index / columns);
     const column = index % columns;
-    const cellX = marginX + column * (cellWidth + gapX);
-    const cellY = marginY + row * (cellHeight + gapY);
+    const cellX = SHEET_MARGIN_X + column * (cellWidth + CELL_GAP_X);
+    const cellY = SHEET_MARGIN_Y + row * (cellHeight + CELL_GAP_Y);
     const centerX = cellX + cellWidth / 2;
     const centerY = cellY + cellHeight / 2;
-    const angle = (((index * 37) % 15) - 7) * (Math.PI / 180);
     const stickerCanvas = createStickerCanvas(image, width, height);
 
     context.save();
