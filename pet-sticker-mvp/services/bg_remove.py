@@ -10,6 +10,7 @@ import requests
 from PIL import Image, UnidentifiedImageError
 
 from config import Settings, get_settings
+from utils.image_utils import validate_image_path
 
 
 class BackgroundRemovalError(RuntimeError):
@@ -43,9 +44,7 @@ class RemoveBgProvider:
                 "Missing REMOVE_BG_API_KEY. Add it to .env or export it before generating stickers."
             )
 
-        source_path = Path(image_path)
-        if not source_path.exists() or not source_path.is_file():
-            raise BackgroundRemovalError(f"Image file does not exist: {source_path}")
+        source_path = validate_image_path(Path(image_path))
 
         try:
             with source_path.open("rb") as image_file:
