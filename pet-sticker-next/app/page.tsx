@@ -7,18 +7,25 @@ const MAX_UPLOADS = 5;
 const STICKERS_PER_SHEET = 10;
 const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
-const BORDER_PX = 28;
+const BORDER_PX = 12;
+const SAFE_MARGIN_PX = 56;
+const SLOT_GAP_PX = 24;
+const SMALL_SLOT_WIDTH = 360;
+const MID_SLOT_X = SAFE_MARGIN_PX + SMALL_SLOT_WIDTH + SLOT_GAP_PX;
+const RIGHT_SLOT_X = A6_WIDTH - SAFE_MARGIN_PX - SMALL_SLOT_WIDTH;
+const WIDE_SLOT_WIDTH = 540;
+const RIGHT_WIDE_SLOT_X = A6_WIDTH - SAFE_MARGIN_PX - WIDE_SLOT_WIDTH;
 const STICKER_SLOTS = [
-  { cx: 180, cy: 170, width: 520, height: 430, rotation: -7 },
-  { cx: 610, cy: 150, width: 430, height: 360, rotation: 8 },
-  { cx: 1018, cy: 170, width: 480, height: 410, rotation: 4 },
-  { cx: 216, cy: 548, width: 520, height: 520, rotation: -84 },
-  { cx: 654, cy: 590, width: 570, height: 500, rotation: -18 },
-  { cx: 1026, cy: 610, width: 500, height: 560, rotation: 72 },
-  { cx: 300, cy: 962, width: 520, height: 470, rotation: 2 },
-  { cx: 710, cy: 1002, width: 470, height: 430, rotation: 180 },
-  { cx: 198, cy: 1464, width: 560, height: 560, rotation: -3 },
-  { cx: 864, cy: 1452, width: 660, height: 540, rotation: -170 },
+  { x: SAFE_MARGIN_PX, y: 56, width: SMALL_SLOT_WIDTH, height: 340, rotation: -6 },
+  { x: MID_SLOT_X, y: 56, width: SMALL_SLOT_WIDTH, height: 340, rotation: 7 },
+  { x: RIGHT_SLOT_X, y: 56, width: SMALL_SLOT_WIDTH, height: 340, rotation: 4 },
+  { x: SAFE_MARGIN_PX, y: 404, width: WIDE_SLOT_WIDTH, height: 390, rotation: -82 },
+  { x: RIGHT_WIDE_SLOT_X, y: 404, width: WIDE_SLOT_WIDTH, height: 390, rotation: 68 },
+  { x: SAFE_MARGIN_PX, y: 802, width: SMALL_SLOT_WIDTH, height: 360, rotation: -3 },
+  { x: MID_SLOT_X, y: 802, width: SMALL_SLOT_WIDTH, height: 360, rotation: 180 },
+  { x: RIGHT_SLOT_X, y: 802, width: SMALL_SLOT_WIDTH, height: 360, rotation: 3 },
+  { x: SAFE_MARGIN_PX, y: 1170, width: WIDE_SLOT_WIDTH, height: 522, rotation: -4 },
+  { x: RIGHT_WIDE_SLOT_X, y: 1170, width: WIDE_SLOT_WIDTH, height: 522, rotation: -172 },
 ];
 
 type Cutout = {
@@ -115,7 +122,7 @@ function drawSilhouette(
 }
 
 function createStickerCanvas(image: DrawableImage, width: number, height: number) {
-  const padding = BORDER_PX + 8;
+  const padding = BORDER_PX + 4;
   const sticker = document.createElement("canvas");
   sticker.width = Math.ceil(width + padding * 2);
   sticker.height = Math.ceil(height + padding * 2);
@@ -157,11 +164,12 @@ function fitImageToRotatedSlot(
 ) {
   let low = 0.1;
   let high = Math.min(slot.width / image.width, slot.height / image.height) * 3;
+  const padding = (BORDER_PX + 4) * 2;
 
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const scale = (low + high) / 2;
-    const stickerWidth = image.width * scale + (BORDER_PX + 8) * 2;
-    const stickerHeight = image.height * scale + (BORDER_PX + 8) * 2;
+    const stickerWidth = image.width * scale + padding;
+    const stickerHeight = image.height * scale + padding;
     const bounds = rotatedBounds(stickerWidth, stickerHeight, angle);
 
     if (bounds.width <= slot.width && bounds.height <= slot.height) {
@@ -191,8 +199,8 @@ async function createStickerAssets(cutouts: Cutout[]) {
     assets.push({
       canvas: stickerCanvas,
       angle,
-      cx: slot.cx,
-      cy: slot.cy,
+      cx: slot.x + slot.width / 2,
+      cy: slot.y + slot.height / 2,
     });
   }
 
