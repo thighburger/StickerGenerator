@@ -11,7 +11,10 @@ const BORDER_PX = 28;
 const SHEET_MARGIN = 24;
 const STICKER_GAP = 8;
 const ROTATION_DEGREES = [-10, 7, -5, 9, -7, 5, -8, 8, -6, 10];
-const LAYOUT_SCALES = [1.2, 1.12, 1.04, 0.96, 0.88, 0.8, 0.72, 0.64, 0.56, 0.48];
+const LAYOUT_SCALES = [
+  2.2, 2.08, 1.96, 1.84, 1.72, 1.6, 1.48, 1.36, 1.24, 1.12, 1.0, 0.9, 0.8, 0.7,
+];
+const MAX_IMAGE_SCALE = 2.6;
 
 type Cutout = {
   url: string;
@@ -245,7 +248,7 @@ async function createStickerAssets(cutouts: Cutout[], layoutScale: number) {
     const image = trimTransparentPadding(await loadImage(cutout.url));
     const angle = ROTATION_DEGREES[index % ROTATION_DEGREES.length] * (Math.PI / 180);
     const imageArea = image.width * image.height;
-    const scale = Math.min(Math.sqrt(targetArea / imageArea) * layoutScale, 1.25);
+    const scale = Math.min(Math.sqrt(targetArea / imageArea) * layoutScale, MAX_IMAGE_SCALE);
     const width = image.width * Math.max(0.1, scale);
     const height = image.height * Math.max(0.1, scale);
     const stickerCanvas = createStickerCanvas(image, width, height);
@@ -271,18 +274,23 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
   context.fillRect(0, 0, A6_WIDTH, A6_HEIGHT);
 
   let placed: PlacedSticker[] = [];
+  let bestCoverage = 0;
   for (const layoutScale of LAYOUT_SCALES) {
     const assets = await createStickerAssets(cutouts, layoutScale);
     const candidates = assets.map((_, offset) => packStickers(assets, offset));
-    placed = candidates.sort(
+    const bestForScale = candidates.sort(
       (a, b) =>
         b.length - a.length ||
         b.reduce((sum, sticker) => sum + sticker.width * sticker.height, 0) -
           a.reduce((sum, sticker) => sum + sticker.width * sticker.height, 0),
     )[0];
-    const coverage = placed.reduce((sum, sticker) => sum + sticker.width * sticker.height, 0);
-    if (placed.length === STICKERS_PER_SHEET && coverage > A6_WIDTH * A6_HEIGHT * 0.45) {
-      break;
+    const coverage = bestForScale.reduce((sum, sticker) => sum + sticker.width * sticker.height, 0);
+    if (
+      bestForScale.length > placed.length ||
+      (bestForScale.length === placed.length && coverage > bestCoverage)
+    ) {
+      placed = bestForScale;
+      bestCoverage = coverage;
     }
   }
 
