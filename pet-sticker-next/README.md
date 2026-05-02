@@ -31,6 +31,12 @@ npm run dev
 
 Open http://localhost:3000.
 
+If Next dev reports a missing `.next/server` chunk, restart with a clean cache:
+
+```bash
+npm run dev:clean
+```
+
 ## Deploy
 
 Deploy `pet-sticker-next/` as the Vercel project root and set `REMOVE_BG_API_KEY` in Vercel environment variables.
