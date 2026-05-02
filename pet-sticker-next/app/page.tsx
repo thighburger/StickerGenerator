@@ -207,11 +207,8 @@ export default function Home() {
     setError("");
 
     try {
-      const nextCutouts: Cutout[] = [];
-      for (let index = 0; index < files.length; index += 1) {
-        setStatus(`Removing background ${index + 1}/${files.length}...`);
-        nextCutouts.push(await removeBackground(files[index]));
-      }
+      setStatus(`Removing backgrounds 1-${files.length}/${files.length}...`);
+      const nextCutouts = await Promise.all(files.map((file) => removeBackground(file)));
 
       setStatus("Drawing 10 stickers...");
       setCutouts(nextCutouts);
