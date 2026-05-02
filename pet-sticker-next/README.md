@@ -31,10 +31,10 @@ npm run dev
 
 Open http://localhost:3000.
 
-If Next dev reports a missing `.next/server` chunk, restart with a clean cache:
+The dev script clears the local `.next` cache before starting. If Next dev still reports a missing `.next/server` chunk, stop the server and restart:
 
 ```bash
-npm run dev:clean
+npm run dev
 ```
 
 ## Deploy
