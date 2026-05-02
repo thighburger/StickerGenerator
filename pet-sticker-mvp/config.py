@@ -19,6 +19,8 @@ PRINT_DPI = 300
 
 REMOVE_BG_ENDPOINT = "https://api.remove.bg/v1.0/removebg"
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+MAX_UPLOAD_IMAGES = 5
+STICKERS_PER_SHEET = 10
 
 
 def mm_to_px(mm: int | float, dpi: int = PRINT_DPI) -> int:
@@ -36,6 +38,8 @@ class Settings:
     remove_bg_max_retries: int
     remove_bg_retry_delay_seconds: float
     remove_bg_request_delay_seconds: float
+    max_upload_images: int
+    stickers_per_sheet: int
     temp_dir: Path
     output_dir: Path
     a6_width_px: int
@@ -64,6 +68,8 @@ def get_settings() -> Settings:
         remove_bg_max_retries=int(os.getenv("REMOVE_BG_MAX_RETRIES", "2")),
         remove_bg_retry_delay_seconds=float(os.getenv("REMOVE_BG_RETRY_DELAY_SECONDS", "5")),
         remove_bg_request_delay_seconds=float(os.getenv("REMOVE_BG_REQUEST_DELAY_SECONDS", "1.5")),
+        max_upload_images=int(os.getenv("MAX_UPLOAD_IMAGES", str(MAX_UPLOAD_IMAGES))),
+        stickers_per_sheet=int(os.getenv("STICKERS_PER_SHEET", str(STICKERS_PER_SHEET))),
         temp_dir=TEMP_DIR,
         output_dir=OUTPUT_DIR,
         a6_width_px=a6_width_px,

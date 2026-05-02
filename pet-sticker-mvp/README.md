@@ -4,11 +4,11 @@ Fast Python/Gradio MVP that turns multiple dog photos into one A6 300 DPI sticke
 
 ## What It Does
 
-- Accepts multiple dog photo uploads.
+- Accepts up to 5 dog photo uploads.
 - Sends each image to remove.bg for background removal.
 - Preserves the returned dog cutout without generative transformation.
 - Adds a white sticker border and subtle pink cutline.
-- Places stickers on a white A6 portrait canvas.
+- Repeats uploaded dog stickers so one white A6 portrait canvas contains 10 stickers.
 - Shows a PNG preview and download link.
 
 ## What It Does Not Do
@@ -41,7 +41,7 @@ python app.py
 
 Use `python3` instead of `python` if your system does not provide a `python` command.
 
-Open the local Gradio URL, upload dog photos, generate the sheet, then download the PNG.
+Open the local Gradio URL, upload up to 5 dog photos, generate the 10-sticker sheet, then download the PNG.
 
 ## Validation
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from itertools import cycle, islice
 from pathlib import Path
 from time import sleep
 
@@ -47,13 +48,32 @@ def _coerce_uploaded_path(file: UploadedFile) -> Path:
     raise ImageValidationError("Could not read one uploaded file path.")
 
 
-def _collect_uploaded_paths(files: list[UploadedFile] | UploadedFile | None) -> list[Path]:
+def _collect_uploaded_paths(
+    files: list[UploadedFile] | UploadedFile | None,
+    max_upload_images: int,
+) -> list[Path]:
     """Normalize Gradio file input into validated paths."""
     if not files:
         raise ImageValidationError("Upload at least one dog photo.")
 
     file_items = list(files) if isinstance(files, (list, tuple)) else [files]
+    if len(file_items) > max_upload_images:
+        raise ImageValidationError(f"Upload up to {max_upload_images} images.")
+
     return [validate_image_path(_coerce_uploaded_path(file)) for file in file_items]
+
+
+def _repeat_stickers_for_sheet(
+    stickers: list[Image.Image],
+    stickers_per_sheet: int,
+) -> list[Image.Image]:
+    """Repeat uploaded sticker assets until the sheet has the target count."""
+    if not stickers:
+        raise PipelineError("No stickers were generated.")
+    if stickers_per_sheet <= 0:
+        raise PipelineError("STICKERS_PER_SHEET must be greater than zero.")
+
+    return [sticker.copy() for sticker in islice(cycle(stickers), stickers_per_sheet)]
 
 
 def generate_sticker_sheet(files: list[UploadedFile] | UploadedFile | None) -> tuple[Image.Image, str]:
@@ -66,7 +86,7 @@ def generate_sticker_sheet(files: list[UploadedFile] | UploadedFile | None) -> t
         )
 
     provider = build_background_removal_provider(settings)
-    image_paths = _collect_uploaded_paths(files)
+    image_paths = _collect_uploaded_paths(files, settings.max_upload_images)
 
     stickers: list[Image.Image] = []
     for index, image_path in enumerate(image_paths, start=1):
@@ -82,7 +102,8 @@ def generate_sticker_sheet(files: list[UploadedFile] | UploadedFile | None) -> t
         except (BackgroundRemovalError, ImageValidationError) as exc:
             raise PipelineError(f"Image {index} ({image_path.name}) failed: {exc}") from exc
 
-    sheet = compose_a6_sheet(stickers, settings=settings)
+    sheet_stickers = _repeat_stickers_for_sheet(stickers, settings.stickers_per_sheet)
+    sheet = compose_a6_sheet(sheet_stickers, settings=settings)
     output_path = export_png(sheet, settings.output_dir)
     return sheet, str(output_path)
 
@@ -110,7 +131,7 @@ def build_app() -> gr.Blocks:
 
         with gr.Row():
             files = gr.File(
-                label="Dog photos",
+                label="Dog photos (up to 5)",
                 file_count="multiple",
                 file_types=["image"],
                 type="filepath",
