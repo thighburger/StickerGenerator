@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
 
 const MAX_UPLOADS = 5;
@@ -142,14 +142,42 @@ export default function Home() {
   const [status, setStatus] = useState("Upload up to 5 dog photos.");
   const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const previewUrls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
 
-  function handleFiles(event: ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(event.target.files ?? []).slice(0, MAX_UPLOADS);
+  function applyFiles(nextFiles: File[]) {
+    const imageFiles = nextFiles.filter((file) => file.type.startsWith("image/"));
+    const selected = imageFiles.slice(0, MAX_UPLOADS);
     setFiles(selected);
     setCutouts([]);
-    setError("");
-    setStatus(selected.length ? `${selected.length} image(s) selected.` : "Upload up to 5 dog photos.");
+    setError(imageFiles.length === 0 ? "Drop or choose image files." : "");
+    setStatus(
+      selected.length
+        ? `${selected.length} image(s) selected.`
+        : "Upload up to 5 dog photos.",
+    );
+  }
+
+  function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    applyFiles(Array.from(event.target.files ?? []));
+  }
+
+  function handleDragOver(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLLabelElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+    applyFiles(Array.from(event.dataTransfer.files));
   }
 
   async function removeBackground(file: File) {
@@ -221,7 +249,14 @@ export default function Home() {
           <h1 className={styles.title}>Pet Sticker Sheet</h1>
           <p className={styles.subtitle}>Upload dog photos, remove backgrounds, and make one A6 page with 10 stickers.</p>
 
-          <label className={styles.dropzone}>
+          <label
+            className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <span className={styles.dropTitle}>Drop images here</span>
+            <span className={styles.dropHint}>or choose files from your computer</span>
             <input
               className={styles.fileInput}
               type="file"
