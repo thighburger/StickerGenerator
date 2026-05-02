@@ -8,18 +8,17 @@ const STICKERS_PER_SHEET = 10;
 const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 28;
-const ROTATION_DEGREES = [-7, 5, -4, 6, -5, 4, -6, 5, -4, 7];
 const STICKER_SLOTS = [
-  { x: 24, y: 24, width: 378, height: 386 },
-  { x: 430, y: 16, width: 380, height: 398 },
-  { x: 838, y: 26, width: 378, height: 386 },
-  { x: 48, y: 414, width: 540, height: 410 },
-  { x: 650, y: 414, width: 540, height: 410 },
-  { x: 24, y: 826, width: 378, height: 386 },
-  { x: 430, y: 818, width: 380, height: 398 },
-  { x: 838, y: 828, width: 378, height: 386 },
-  { x: 50, y: 1218, width: 540, height: 500 },
-  { x: 650, y: 1218, width: 540, height: 500 },
+  { cx: 180, cy: 170, width: 520, height: 430, rotation: -7 },
+  { cx: 610, cy: 150, width: 430, height: 360, rotation: 8 },
+  { cx: 1018, cy: 170, width: 480, height: 410, rotation: 4 },
+  { cx: 216, cy: 548, width: 520, height: 520, rotation: -84 },
+  { cx: 654, cy: 590, width: 570, height: 500, rotation: -18 },
+  { cx: 1026, cy: 610, width: 500, height: 560, rotation: 72 },
+  { cx: 300, cy: 962, width: 520, height: 470, rotation: 2 },
+  { cx: 710, cy: 1002, width: 470, height: 430, rotation: 180 },
+  { cx: 198, cy: 1464, width: 560, height: 560, rotation: -3 },
+  { cx: 864, cy: 1452, width: 660, height: 540, rotation: -170 },
 ];
 
 type Cutout = {
@@ -138,6 +137,8 @@ function repeatedCutouts(cutouts: Cutout[]) {
 type StickerAsset = {
   canvas: HTMLCanvasElement;
   angle: number;
+  cx: number;
+  cy: number;
 };
 
 function rotatedBounds(width: number, height: number, angle: number) {
@@ -183,13 +184,15 @@ async function createStickerAssets(cutouts: Cutout[]) {
   for (let index = 0; index < stickers.length; index += 1) {
     const cutout = stickers[index];
     const image = trimTransparentPadding(await loadImage(cutout.url));
-    const angle = ROTATION_DEGREES[index % ROTATION_DEGREES.length] * (Math.PI / 180);
     const slot = STICKER_SLOTS[index];
+    const angle = slot.rotation * (Math.PI / 180);
     const { width, height } = fitImageToRotatedSlot(image, angle, slot);
     const stickerCanvas = createStickerCanvas(image, width, height);
     assets.push({
       canvas: stickerCanvas,
       angle,
+      cx: slot.cx,
+      cy: slot.cy,
     });
   }
 
@@ -207,10 +210,9 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
 
   const assets = await createStickerAssets(cutouts);
 
-  for (const [index, sticker] of assets.entries()) {
-    const slot = STICKER_SLOTS[index];
+  for (const sticker of assets) {
     context.save();
-    context.translate(slot.x + slot.width / 2, slot.y + slot.height / 2);
+    context.translate(sticker.cx, sticker.cy);
     context.rotate(sticker.angle);
     context.drawImage(sticker.canvas, -sticker.canvas.width / 2, -sticker.canvas.height / 2);
     context.restore();
