@@ -306,6 +306,7 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [testFiles, setTestFiles] = useState<File[]>([]);
   const [cutouts, setCutouts] = useState<Cutout[]>([]);
   const [status, setStatus] = useState("Upload up to 5 dog photos.");
   const [error, setError] = useState("");
@@ -322,6 +323,20 @@ export default function Home() {
     setStatus(
       selected.length
         ? `${selected.length} image(s) selected.`
+        : "Upload up to 5 dog photos.",
+    );
+  }
+
+  function handleTestFiles(event: ChangeEvent<HTMLInputElement>) {
+    const imageFiles = Array.from(event.target.files ?? [])
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, MAX_UPLOADS);
+    setTestFiles(imageFiles);
+    setCutouts([]);
+    setError("");
+    setStatus(
+      imageFiles.length
+        ? `${imageFiles.length} transparent test image(s) selected.`
         : "Upload up to 5 dog photos.",
     );
   }
@@ -397,6 +412,35 @@ export default function Home() {
     }
   }
 
+  async function generateFromTransparentImages() {
+    if (testFiles.length === 0) {
+      setError("Choose at least one transparent PNG test image.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setError("");
+
+    try {
+      const nextCutouts = testFiles.map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file),
+      }));
+      setStatus("Drawing 10 stickers from transparent test images...");
+      setCutouts(nextCutouts);
+      const canvas = canvasRef.current;
+      if (!canvas) throw new Error("Canvas is not ready.");
+      await drawSheet(canvas, nextCutouts);
+      setStatus("Test sticker sheet ready.");
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "Could not generate test sticker sheet.";
+      setError(message);
+      setStatus("Generation failed.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
   function download() {
     const canvas = canvasRef.current;
     if (!canvas || cutouts.length === 0) return;
@@ -453,6 +497,24 @@ export default function Home() {
           </div>
 
           <div className={`${styles.status} ${error ? styles.error : ""}`}>{error || status}</div>
+
+          <div className={styles.testPanel}>
+            <div className={styles.testTitle}>Test with transparent PNGs</div>
+            <input
+              className={styles.fileInput}
+              type="file"
+              accept="image/png,image/webp"
+              multiple
+              onChange={handleTestFiles}
+            />
+            <button
+              className={styles.secondary}
+              disabled={isGenerating || testFiles.length === 0}
+              onClick={generateFromTransparentImages}
+            >
+              Generate test sheet
+            </button>
+          </div>
         </section>
 
         <section className={styles.previewArea}>
