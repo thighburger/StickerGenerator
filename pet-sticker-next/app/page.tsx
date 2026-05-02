@@ -8,11 +8,9 @@ const STICKERS_PER_SHEET = 10;
 const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 28;
-const SHEET_MARGIN_X = 52;
-const SHEET_MARGIN_Y = 56;
-const CELL_GAP_X = 18;
-const CELL_GAP_Y = 14;
-const ROTATION_DEGREES = [-4, 3, -2, 4, -3, 2, -4, 3, -2, 4];
+const SHEET_MARGIN = 38;
+const STICKER_GAP = 12;
+const ROTATION_DEGREES = [-9, 6, -4, 8, -7, 4, -8, 7, -5, 9];
 
 type Cutout = {
   url: string;
@@ -78,6 +76,114 @@ function repeatedCutouts(cutouts: Cutout[]) {
   });
 }
 
+type StickerAsset = {
+  canvas: HTMLCanvasElement;
+  angle: number;
+  width: number;
+  height: number;
+};
+
+type PlacedSticker = StickerAsset & {
+  x: number;
+  y: number;
+};
+
+function rotatedBounds(width: number, height: number, angle: number) {
+  const cos = Math.abs(Math.cos(angle));
+  const sin = Math.abs(Math.sin(angle));
+  return {
+    width: width * cos + height * sin,
+    height: width * sin + height * cos,
+  };
+}
+
+function overlaps(a: PlacedSticker, b: PlacedSticker) {
+  return !(
+    a.x + a.width + STICKER_GAP <= b.x ||
+    b.x + b.width + STICKER_GAP <= a.x ||
+    a.y + a.height + STICKER_GAP <= b.y ||
+    b.y + b.height + STICKER_GAP <= a.y
+  );
+}
+
+function candidateScore(candidate: PlacedSticker, placed: PlacedSticker[]) {
+  if (placed.length === 0) {
+    const centerX = candidate.x + candidate.width / 2;
+    const centerY = candidate.y + candidate.height / 2;
+    return Math.hypot(centerX - A6_WIDTH / 2, centerY - A6_HEIGHT / 2);
+  }
+
+  const nearest = Math.min(
+    ...placed.map((sticker) => {
+      const dx =
+        Math.max(sticker.x, candidate.x) -
+        Math.min(sticker.x + sticker.width, candidate.x + candidate.width);
+      const dy =
+        Math.max(sticker.y, candidate.y) -
+        Math.min(sticker.y + sticker.height, candidate.y + candidate.height);
+      return Math.hypot(Math.max(0, dx), Math.max(0, dy));
+    }),
+  );
+  const centerX = candidate.x + candidate.width / 2;
+  const centerY = candidate.y + candidate.height / 2;
+  const centerDistance = Math.hypot(centerX - A6_WIDTH / 2, centerY - A6_HEIGHT / 2);
+  return nearest + centerDistance * 0.08;
+}
+
+function createCandidatePositions(asset: StickerAsset) {
+  const maxX = A6_WIDTH - SHEET_MARGIN - asset.width;
+  const maxY = A6_HEIGHT - SHEET_MARGIN - asset.height;
+  const usableWidth = Math.max(1, maxX - SHEET_MARGIN);
+  const usableHeight = Math.max(1, maxY - SHEET_MARGIN);
+  const positions: Array<{ x: number; y: number }> = [];
+
+  for (let ring = 0; ring < 6; ring += 1) {
+    const insetX = (usableWidth * ring) / 12;
+    const insetY = (usableHeight * ring) / 12;
+    const left = SHEET_MARGIN + insetX;
+    const right = maxX - insetX;
+    const top = SHEET_MARGIN + insetY;
+    const bottom = maxY - insetY;
+    const steps = 7 + ring * 2;
+
+    for (let index = 0; index <= steps; index += 1) {
+      const t = index / steps;
+      positions.push({ x: left + (right - left) * t, y: top });
+      positions.push({ x: left + (right - left) * t, y: bottom });
+      positions.push({ x: left, y: top + (bottom - top) * t });
+      positions.push({ x: right, y: top + (bottom - top) * t });
+    }
+  }
+
+  positions.push({
+    x: SHEET_MARGIN + usableWidth / 2,
+    y: SHEET_MARGIN + usableHeight / 2,
+  });
+
+  return positions;
+}
+
+function packStickers(assets: StickerAsset[]) {
+  const placed: PlacedSticker[] = [];
+
+  for (const asset of assets) {
+    let best: PlacedSticker | null = null;
+    for (const position of createCandidatePositions(asset)) {
+      const candidate = { ...asset, x: position.x, y: position.y };
+      if (placed.some((sticker) => overlaps(candidate, sticker))) continue;
+      if (!best || candidateScore(candidate, placed) < candidateScore(best, placed)) {
+        best = candidate;
+      }
+    }
+
+    if (best) {
+      placed.push(best);
+    }
+  }
+
+  return placed;
+}
+
 async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
   const context = canvas.getContext("2d");
   if (!context || cutouts.length === 0) return;
@@ -87,46 +193,33 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
   context.fillStyle = "#ffffff";
   context.fillRect(0, 0, A6_WIDTH, A6_HEIGHT);
 
+  const assets: StickerAsset[] = [];
   const stickers = repeatedCutouts(cutouts);
-  const columns = 2;
-  const rows = 5;
-  const cellWidth = (A6_WIDTH - SHEET_MARGIN_X * 2 - CELL_GAP_X) / columns;
-  const cellHeight = (A6_HEIGHT - SHEET_MARGIN_Y * 2 - CELL_GAP_Y * (rows - 1)) / rows;
+  const targetArea = ((A6_WIDTH - SHEET_MARGIN * 2) * (A6_HEIGHT - SHEET_MARGIN * 2)) / 10;
 
   for (let index = 0; index < stickers.length; index += 1) {
     const cutout = stickers[index];
     const image = await loadImage(cutout.url);
     const angle = ROTATION_DEGREES[index % ROTATION_DEGREES.length] * (Math.PI / 180);
-    const padding = BORDER_PX + 8;
-    const availableStickerWidth = cellWidth - 8;
-    const availableStickerHeight = cellHeight - 8;
-    const cos = Math.abs(Math.cos(angle));
-    const sin = Math.abs(Math.sin(angle));
-    const maxImageWidth =
-      (availableStickerWidth * cos - availableStickerHeight * sin) / (cos * cos - sin * sin) -
-      padding * 2;
-    const maxImageHeight =
-      (availableStickerHeight * cos - availableStickerWidth * sin) / (cos * cos - sin * sin) -
-      padding * 2;
-    const scale = Math.min(
-      maxImageWidth / image.naturalWidth,
-      maxImageHeight / image.naturalHeight,
-      1,
-    );
+    const imageArea = image.naturalWidth * image.naturalHeight;
+    const scale = Math.min(Math.sqrt(targetArea / imageArea) * 0.82, 1.25);
     const width = image.naturalWidth * Math.max(0.1, scale);
     const height = image.naturalHeight * Math.max(0.1, scale);
-    const row = Math.floor(index / columns);
-    const column = index % columns;
-    const cellX = SHEET_MARGIN_X + column * (cellWidth + CELL_GAP_X);
-    const cellY = SHEET_MARGIN_Y + row * (cellHeight + CELL_GAP_Y);
-    const centerX = cellX + cellWidth / 2;
-    const centerY = cellY + cellHeight / 2;
     const stickerCanvas = createStickerCanvas(image, width, height);
+    const bounds = rotatedBounds(stickerCanvas.width, stickerCanvas.height, angle);
+    assets.push({
+      canvas: stickerCanvas,
+      angle,
+      width: bounds.width,
+      height: bounds.height,
+    });
+  }
 
+  for (const sticker of packStickers(assets)) {
     context.save();
-    context.translate(centerX, centerY);
-    context.rotate(angle);
-    context.drawImage(stickerCanvas, -stickerCanvas.width / 2, -stickerCanvas.height / 2);
+    context.translate(sticker.x + sticker.width / 2, sticker.y + sticker.height / 2);
+    context.rotate(sticker.angle);
+    context.drawImage(sticker.canvas, -sticker.canvas.width / 2, -sticker.canvas.height / 2);
     context.restore();
   }
 }
