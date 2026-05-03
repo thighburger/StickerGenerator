@@ -336,9 +336,9 @@
   display: grid;
   align-content: center;
   justify-items: center;
-  min-height: 650px;
+  min-height: 520px;
   overflow: hidden;
-  padding: 44px;
+  padding: 30px 36px;
   background:
     linear-gradient(180deg, rgba(246, 253, 249, 0.84), rgba(235, 248, 239, 0.88)),
     #fff;
@@ -359,38 +359,38 @@
 }
 
 .progressCopy p {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #1d2430;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 500;
 }
 
 .progressCopy h1 {
   color: #08a865;
-  font-size: clamp(28px, 3vw, 42px);
+  font-size: clamp(26px, 2.4vw, 34px);
   line-height: 1.18;
 }
 
 .progressCopy span {
-  margin-top: 32px;
+  margin-top: 22px;
   color: #4a5566;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
 }
 
 .progressCopy small {
-  margin-top: 12px;
+  margin-top: 8px;
   color: #677589;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .progressRing {
   display: grid;
   place-items: center;
-  width: 142px;
-  height: 142px;
-  margin-top: 56px;
+  width: 112px;
+  height: 112px;
+  margin-top: 34px;
   border-radius: 999px;
   background:
     radial-gradient(circle, #f7fffb 45%, transparent 46%),
@@ -400,8 +400,8 @@
 .ringInner {
   display: grid;
   place-items: center;
-  width: 90px;
-  height: 90px;
+  width: 72px;
+  height: 72px;
   border-radius: 999px;
   background: #fff;
   color: #a6c8b9;
@@ -411,7 +411,7 @@
 .progressBar {
   width: min(300px, 80%);
   height: 8px;
-  margin-top: 74px;
+  margin-top: 42px;
   overflow: hidden;
   border-radius: 999px;
   background: #dfe8ee;
@@ -426,7 +426,7 @@
 }
 
 .progressMeta {
-  margin-top: 12px;
+  margin-top: 10px;
   color: #677589;
   font-size: 14px;
   font-weight: 800;
@@ -441,23 +441,23 @@
 
 .decorOne {
   left: 16%;
-  top: 38%;
-  font-size: 32px;
+  top: 34%;
+  font-size: 26px;
 }
 
 .decorTwo {
   right: 12%;
-  top: 43%;
+  top: 40%;
   color: #e5d4b8;
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .groundDog {
   position: absolute;
   left: 32px;
-  bottom: 24px;
-  width: 92px;
-  height: 86px;
+  bottom: 18px;
+  width: 74px;
+  height: 68px;
   border-radius: 54% 46% 42% 58%;
   background: #f3d9b1;
   opacity: 0.82;
@@ -666,7 +666,7 @@
   }
 
   .progressPanel {
-    min-height: 520px;
+    min-height: 430px;
   }
 
   .processCards {
