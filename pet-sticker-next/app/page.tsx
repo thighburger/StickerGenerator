@@ -9,9 +9,10 @@ const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 12;
 const SAFE_MARGIN_PX = 64;
+const STICKER_GAP_PX = 24;
 const PACK_CELL_PX = 12;
 const COVERAGE_CELL_PX = 12;
-const MASK_GAP_CELLS = 1;
+const MASK_GAP_CELLS = Math.ceil(STICKER_GAP_PX / PACK_CELL_PX);
 const CONTENT_WIDTH = A6_WIDTH - SAFE_MARGIN_PX * 2;
 const CONTENT_HEIGHT = A6_HEIGHT - SAFE_MARGIN_PX * 2;
 const BASE_STICKER_AREA = (CONTENT_WIDTH * CONTENT_HEIGHT) / 8.25;
@@ -30,16 +31,16 @@ const PACK_ANCHORS = [
   { x: 876, y: 1342, rotation: -172, weight: 1.35 },
 ];
 const DENSE_LAYOUT_BOXES = [
-  { x: 64, y: 64, width: 760, height: 360, rotation: 90 },
-  { x: 824, y: 64, width: 352, height: 360, rotation: -5 },
-  { x: 64, y: 424, width: 616, height: 400, rotation: 90 },
-  { x: 680, y: 424, width: 496, height: 400, rotation: -5 },
-  { x: 64, y: 824, width: 600, height: 400, rotation: 90 },
-  { x: 664, y: 824, width: 250, height: 400, rotation: 0 },
-  { x: 914, y: 824, width: 262, height: 400, rotation: 0 },
-  { x: 64, y: 1224, width: 560, height: 460, rotation: 90 },
-  { x: 624, y: 1224, width: 300, height: 460, rotation: 0 },
-  { x: 924, y: 1224, width: 252, height: 460, rotation: 0 },
+  { x: 64, y: 64, width: 720, height: 340, rotation: 90 },
+  { x: 816, y: 64, width: 360, height: 340, rotation: -5 },
+  { x: 64, y: 440, width: 580, height: 370, rotation: 90 },
+  { x: 676, y: 440, width: 500, height: 370, rotation: -5 },
+  { x: 64, y: 846, width: 570, height: 370, rotation: 90 },
+  { x: 662, y: 846, width: 230, height: 370, rotation: 0 },
+  { x: 920, y: 846, width: 256, height: 370, rotation: 0 },
+  { x: 64, y: 1252, width: 530, height: 432, rotation: 90 },
+  { x: 626, y: 1252, width: 280, height: 432, rotation: 0 },
+  { x: 938, y: 1252, width: 238, height: 432, rotation: 0 },
 ];
 const FALLBACK_BOXES = [
   { x: 76, y: 64, width: 330, height: 300, rotation: -5 },
