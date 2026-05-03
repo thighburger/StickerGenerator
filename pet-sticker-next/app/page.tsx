@@ -15,6 +15,7 @@ const MASK_GAP_CELLS = 1;
 const CONTENT_WIDTH = A6_WIDTH - SAFE_MARGIN_PX * 2;
 const CONTENT_HEIGHT = A6_HEIGHT - SAFE_MARGIN_PX * 2;
 const BASE_STICKER_AREA = (CONTENT_WIDTH * CONTENT_HEIGHT) / 8.25;
+const MIN_SHEET_FILL_RATIO = 0.7;
 const PACK_SCALES = [1.12, 1.06, 1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4];
 const PACK_ANCHORS = [
   { x: 232, y: 188, rotation: -7, weight: 1.18 },
@@ -625,7 +626,7 @@ async function createStickerAssets(cutouts: Cutout[]) {
   const images = chooseImagesForDenseLayout(sourceImages);
 
   const denseAssets = createDenseAssets(images);
-  if (estimateSheetFill(denseAssets) >= 0.8) {
+  if (estimateSheetFill(denseAssets) >= MIN_SHEET_FILL_RATIO) {
     return denseAssets;
   }
 
@@ -646,7 +647,7 @@ async function createStickerAssets(cutouts: Cutout[]) {
       };
     });
     const packed = packStickers(unplaced);
-    if (packed && estimateSheetFill(packed) >= 0.8) return packed;
+    if (packed && estimateSheetFill(packed) >= MIN_SHEET_FILL_RATIO) return packed;
   }
 
   return denseAssets.length ? denseAssets : createFallbackAssets(repeatedImages);
