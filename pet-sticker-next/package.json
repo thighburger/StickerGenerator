@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node ./node_modules/next/dist/bin/next dev",
-    "dev:clean": "rm -rf .next && node ./node_modules/next/dist/bin/next dev",
-    "build": "node ./node_modules/next/dist/bin/next build",
-    "start": "node ./node_modules/next/dist/bin/next start",
-    "lint": "node ./node_modules/next/dist/bin/next lint"
+    "predev": "node ./scripts/preflight-dev.mjs",
+    "dev": "next dev",
+    "dev:clean": "node ./scripts/preflight-dev.mjs && rm -rf .next && next dev",
+    "build": "node ./scripts/preflight-dev.mjs && next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint"
   },
   "dependencies": {
     "next": "^14.2.35",

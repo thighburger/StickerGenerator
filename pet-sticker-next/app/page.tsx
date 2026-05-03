@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 
 const MAX_UPLOADS = 5;
 const STICKERS_PER_SHEET = 10;
+const KAKAO_OPEN_CHAT_URL = "https://open.kakao.com/o/s7CYBeti";
 const A6_WIDTH = 1240;
 const A6_HEIGHT = 1748;
 const BORDER_PX = 12;
@@ -60,6 +61,13 @@ const FALLBACK_BOXES = [
 type Cutout = {
   url: string;
   name: string;
+};
+
+type OrderForm = {
+  name: string;
+  phone: string;
+  address: string;
+  memo: string;
 };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -300,6 +308,30 @@ type UnplacedSticker = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function createOrderId() {
+  const now = new Date();
+  const date = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join("");
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+
+  return `STK-${date}-${suffix}`;
+}
+
+function canvasToPngBlob(canvas: HTMLCanvasElement) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error("Could not export sticker sheet."));
+      }
+    }, "image/png");
+  });
 }
 
 function targetSizeForImage(image: DrawableImage, area: number) {
@@ -747,6 +779,14 @@ export default function Home() {
   const [cutouts, setCutouts] = useState<Cutout[]>([]);
   const [status, setStatus] = useState("Upload up to 5 dog photos.");
   const [error, setError] = useState("");
+  const [orderNotice, setOrderNotice] = useState("");
+  const [orderForm, setOrderForm] = useState<OrderForm>({
+    name: "",
+    phone: "",
+    address: "",
+    memo: "",
+  });
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const previewUrls = useMemo(
@@ -764,6 +804,7 @@ export default function Home() {
     setFiles(selected);
     setCutouts([]);
     setError(imageFiles.length === 0 ? "Drop or choose image files." : "");
+    setOrderNotice("");
     setStatus(
       selected.length
         ? `${selected.length} image(s) selected.`
@@ -778,6 +819,7 @@ export default function Home() {
     setTestFiles(imageFiles);
     setCutouts([]);
     setError("");
+    setOrderNotice("");
     setStatus(
       imageFiles.length
         ? `${imageFiles.length} transparent test image(s) selected.`
@@ -787,6 +829,10 @@ export default function Home() {
 
   function handleFiles(event: ChangeEvent<HTMLInputElement>) {
     applyFiles(Array.from(event.target.files ?? []));
+  }
+
+  function updateOrderForm(field: keyof OrderForm, value: string) {
+    setOrderForm((current) => ({ ...current, [field]: value }));
   }
 
   function handleDragOver(event: DragEvent<HTMLLabelElement>) {
@@ -905,6 +951,80 @@ export default function Home() {
     link.click();
   }
 
+  async function purchase() {
+    const canvas = canvasRef.current;
+    if (!canvas || cutouts.length === 0) return;
+    if (!orderForm.name.trim() || !orderForm.phone.trim() || !orderForm.address.trim()) {
+      setOrderNotice("이름, 연락처, 배송주소를 입력한 뒤 구매하기를 눌러주세요.");
+      return;
+    }
+
+    const orderId = createOrderId();
+    setIsSubmittingOrder(true);
+    setOrderNotice("주문 파일을 저장하는 중입니다...");
+
+    try {
+      const sheetBlob = await canvasToPngBlob(canvas);
+      const orderData = new FormData();
+      orderData.append("orderId", orderId);
+      orderData.append("name", orderForm.name);
+      orderData.append("phone", orderForm.phone);
+      orderData.append("address", orderForm.address);
+      orderData.append("memo", orderForm.memo);
+      orderData.append("sheet", sheetBlob, `${orderId}-sheet.png`);
+      files.forEach((file) => orderData.append("photos", file, file.name));
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        body: orderData,
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error ?? "Could not save order files.");
+      }
+    } catch (caught) {
+      const message =
+        caught instanceof Error ? caught.message : "Could not save order files.";
+      setOrderNotice(`주문 저장에 실패했습니다. ${message}`);
+      setIsSubmittingOrder(false);
+      return;
+    }
+
+    const message = [
+      `주문번호: ${orderId}`,
+      "A6 스티커 1장 구매 문의합니다.",
+      "원본 사진과 고화질 시안 PNG가 저장되었습니다.",
+    ].join("\n");
+
+    const kakaoWindow = window.open(
+      KAKAO_OPEN_CHAT_URL,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    download();
+    setOrderNotice(
+      `${orderId} 주문번호가 생성됐어요. 카카오톡 채팅방에 붙여넣어 주세요.`
+    );
+
+    try {
+      await navigator.clipboard.writeText(message);
+    } catch {
+      setOrderNotice(
+        `${orderId} 주문번호가 생성됐어요. 복사가 막히면 이 번호를 카카오톡에 직접 보내주세요.`
+      );
+    }
+
+    if (!kakaoWindow) {
+      setOrderNotice(
+        `${orderId} 주문번호가 생성됐어요. 팝업이 막히면 카카오톡 문의 버튼을 다시 눌러주세요.`
+      );
+    }
+
+    setIsSubmittingOrder(false);
+  }
+
   return (
     <main className={styles.page}>
       <header className={styles.header}>
@@ -984,6 +1104,7 @@ export default function Home() {
                 setFiles([]);
                 setCutouts([]);
                 setError("");
+                setOrderNotice("");
                 setStatus("Upload up to 5 dog photos.");
               }}
             >
@@ -1087,13 +1208,40 @@ export default function Home() {
               <span>총 결제금액</span>
               <strong>₩9,900</strong>
             </div>
+            <div className={styles.orderForm}>
+              <input
+                value={orderForm.name}
+                onChange={(event) => updateOrderForm("name", event.target.value)}
+                placeholder="받는 분 이름"
+              />
+              <input
+                value={orderForm.phone}
+                onChange={(event) => updateOrderForm("phone", event.target.value)}
+                placeholder="연락처"
+              />
+              <textarea
+                value={orderForm.address}
+                onChange={(event) => updateOrderForm("address", event.target.value)}
+                placeholder="배송주소"
+                rows={3}
+              />
+              <textarea
+                value={orderForm.memo}
+                onChange={(event) => updateOrderForm("memo", event.target.value)}
+                placeholder="요청사항"
+                rows={2}
+              />
+            </div>
             <button
               className={styles.buyButton}
-              disabled={!previewReady}
-              onClick={download}
+              disabled={!previewReady || isSubmittingOrder}
+              onClick={purchase}
             >
-              이 시안으로 PNG 다운로드
+              {isSubmittingOrder ? "주문 저장 중" : "구매하기"}
             </button>
+            {orderNotice && (
+              <div className={styles.orderNotice}>{orderNotice}</div>
+            )}
           </div>
         </aside>
       </div>
@@ -1102,9 +1250,9 @@ export default function Home() {
         <h2>주문 후 진행 과정</h2>
         <div className={styles.processCards}>
           {[
-            ["결제 완료", "결제가 완료되면 바로 제작이 시작돼요.", "green"],
-            ["관리자 확인", "관리자가 시안을 확인하고 제작을 승인해요.", "blue"],
-            ["제작", "제작하게 인쇄 후 정성껏 재단해요.", "yellow"],
+            ["구매하기", "시안 PNG가 저장되고 주문번호가 복사돼요.", "green"],
+            ["카카오톡 문의", "열린 채팅방에 주문번호를 붙여넣어 주세요.", "blue"],
+            ["입금 확인", "결제 확인 후 스티커 제작을 시작해요.", "yellow"],
             ["배송 출발", "안전하게 포장하여 빠르게 배송해 드려요.", "purple"],
           ].map(([title, text, tone], index) => (
             <div

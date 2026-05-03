@@ -40,3 +40,5 @@ npm run dev
 ## Deploy
 
 Deploy `pet-sticker-next/` as the Vercel project root and set `REMOVE_BG_API_KEY` in Vercel environment variables.
+
+Note: local order file storage under `orders/` is for local MVP testing only. Use external storage such as Supabase Storage for production order files on Vercel.
