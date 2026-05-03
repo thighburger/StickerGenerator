@@ -17,7 +17,9 @@ const CONTENT_WIDTH = A6_WIDTH - SAFE_MARGIN_PX * 2;
 const CONTENT_HEIGHT = A6_HEIGHT - SAFE_MARGIN_PX * 2;
 const BASE_STICKER_AREA = (CONTENT_WIDTH * CONTENT_HEIGHT) / 8.25;
 const MIN_SHEET_FILL_RATIO = 0.7;
-const PACK_SCALES = [1.12, 1.06, 1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4];
+const PACK_SCALES = [
+  1.12, 1.06, 1, 0.94, 0.88, 0.82, 0.76, 0.7, 0.64, 0.58, 0.52, 0.46, 0.4,
+];
 const PACK_ANCHORS = [
   { x: 232, y: 188, rotation: -7, weight: 1.18 },
   { x: 622, y: 166, rotation: 10, weight: 1 },
@@ -123,11 +125,12 @@ function removeSolidEdgeMatte(image: HTMLImageElement) {
     const green = pixels.data[pixelIndex + 1];
     const blue = pixels.data[pixelIndex + 2];
 
-    return cornerColors.some(([cornerRed, cornerGreen, cornerBlue]) => (
-      Math.abs(red - cornerRed) <= backgroundThreshold
-      && Math.abs(green - cornerGreen) <= backgroundThreshold
-      && Math.abs(blue - cornerBlue) <= backgroundThreshold
-    ));
+    return cornerColors.some(
+      ([cornerRed, cornerGreen, cornerBlue]) =>
+        Math.abs(red - cornerRed) <= backgroundThreshold &&
+        Math.abs(green - cornerGreen) <= backgroundThreshold &&
+        Math.abs(blue - cornerBlue) <= backgroundThreshold
+    );
   }
 
   const visited = new Uint8Array(source.width * source.height);
@@ -211,7 +214,7 @@ function trimTransparentPadding(image: DrawableImage) {
     0,
     0,
     trimmed.width,
-    trimmed.height,
+    trimmed.height
   );
   return trimmed;
 }
@@ -224,7 +227,7 @@ function drawSilhouette(
   width: number,
   height: number,
   radius: number,
-  color: string,
+  color: string
 ) {
   const layer = document.createElement("canvas");
   layer.width = context.canvas.width;
@@ -246,7 +249,11 @@ function drawSilhouette(
   context.drawImage(layer, 0, 0);
 }
 
-function createStickerCanvas(image: DrawableImage, width: number, height: number) {
+function createStickerCanvas(
+  image: DrawableImage,
+  width: number,
+  height: number
+) {
   const padding = BORDER_PX + 4;
   const sticker = document.createElement("canvas");
   sticker.width = Math.ceil(width + padding * 2);
@@ -254,7 +261,16 @@ function createStickerCanvas(image: DrawableImage, width: number, height: number
   const context = sticker.getContext("2d");
   if (!context) return sticker;
 
-  drawSilhouette(context, image, padding, padding, width, height, BORDER_PX, "#ffffff");
+  drawSilhouette(
+    context,
+    image,
+    padding,
+    padding,
+    width,
+    height,
+    BORDER_PX,
+    "#ffffff"
+  );
   context.drawImage(image, padding, padding, width, height);
 
   return sticker;
@@ -332,8 +348,16 @@ function createMask(canvas: HTMLCanvasElement): StickerMask {
     for (let x = 0; x < canvas.width; x += PACK_CELL_PX) {
       let hasInk = false;
 
-      for (let sampleY = y; sampleY < Math.min(y + PACK_CELL_PX, canvas.height); sampleY += 4) {
-        for (let sampleX = x; sampleX < Math.min(x + PACK_CELL_PX, canvas.width); sampleX += 4) {
+      for (
+        let sampleY = y;
+        sampleY < Math.min(y + PACK_CELL_PX, canvas.height);
+        sampleY += 4
+      ) {
+        for (
+          let sampleX = x;
+          sampleX < Math.min(x + PACK_CELL_PX, canvas.width);
+          sampleX += 4
+        ) {
           const alpha = pixels.data[(sampleY * canvas.width + sampleX) * 4 + 3];
           if (alpha > 10) {
             hasInk = true;
@@ -351,7 +375,12 @@ function createMask(canvas: HTMLCanvasElement): StickerMask {
           for (let gapX = -MASK_GAP_CELLS; gapX <= MASK_GAP_CELLS; gapX += 1) {
             const nextX = cellX + gapX;
             const nextY = cellY + gapY;
-            if (nextX >= 0 && nextY >= 0 && nextX < widthCells && nextY < heightCells) {
+            if (
+              nextX >= 0 &&
+              nextY >= 0 &&
+              nextX < widthCells &&
+              nextY < heightCells
+            ) {
               occupied[nextY * widthCells + nextX] = 1;
             }
           }
@@ -382,9 +411,14 @@ function canPlace(
   rows: number,
   mask: StickerMask,
   x: number,
-  y: number,
+  y: number
 ) {
-  if (x < 0 || y < 0 || x + mask.widthCells >= cols || y + mask.heightCells >= rows) {
+  if (
+    x < 0 ||
+    y < 0 ||
+    x + mask.widthCells >= cols ||
+    y + mask.heightCells >= rows
+  ) {
     return false;
   }
 
@@ -402,7 +436,7 @@ function markPlaced(
   cols: number,
   mask: StickerMask,
   x: number,
-  y: number,
+  y: number
 ) {
   for (const [pointX, pointY] of mask.points) {
     occupancy[(y + pointY) * cols + x + pointX] = 1;
@@ -413,12 +447,16 @@ function findPosition(
   occupancy: Uint8Array,
   cols: number,
   rows: number,
-  sticker: UnplacedSticker,
+  sticker: UnplacedSticker
 ) {
   const minX = Math.ceil(SAFE_MARGIN_PX / PACK_CELL_PX);
   const minY = Math.ceil(SAFE_MARGIN_PX / PACK_CELL_PX);
-  const maxX = Math.floor((A6_WIDTH - SAFE_MARGIN_PX - sticker.canvas.width) / PACK_CELL_PX);
-  const maxY = Math.floor((A6_HEIGHT - SAFE_MARGIN_PX - sticker.canvas.height) / PACK_CELL_PX);
+  const maxX = Math.floor(
+    (A6_WIDTH - SAFE_MARGIN_PX - sticker.canvas.width) / PACK_CELL_PX
+  );
+  const maxY = Math.floor(
+    (A6_HEIGHT - SAFE_MARGIN_PX - sticker.canvas.height) / PACK_CELL_PX
+  );
 
   if (maxX < minX || maxY < minY) {
     return null;
@@ -427,12 +465,12 @@ function findPosition(
   const anchorX = clamp(
     Math.round((sticker.anchorX - sticker.canvas.width / 2) / PACK_CELL_PX),
     minX,
-    maxX,
+    maxX
   );
   const anchorY = clamp(
     Math.round((sticker.anchorY - sticker.canvas.height / 2) / PACK_CELL_PX),
     minY,
-    maxY,
+    maxY
   );
   const seen = new Set<string>();
 
@@ -478,7 +516,9 @@ function packStickers(stickers: UnplacedSticker[]) {
   const rows = Math.ceil(A6_HEIGHT / PACK_CELL_PX);
   const occupancy = new Uint8Array(cols * rows);
   const placed: StickerAsset[] = [];
-  const sorted = [...stickers].sort((a, b) => b.mask.points.length - a.mask.points.length);
+  const sorted = [...stickers].sort(
+    (a, b) => b.mask.points.length - a.mask.points.length
+  );
 
   for (const sticker of sorted) {
     const position = findPosition(occupancy, cols, rows, sticker);
@@ -502,20 +542,30 @@ function packStickers(stickers: UnplacedSticker[]) {
 
 function createFallbackAsset(
   image: DrawableImage,
-  box: { x: number; y: number; width: number; height: number; rotation: number },
-  anchorIndex: number,
+  box: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
+  },
+  anchorIndex: number
 ) {
   const angle = box.rotation * (Math.PI / 180);
   let low = 0.1;
   let high = Math.max(box.width / image.width, box.height / image.height) * 2;
   let bestCanvas = rotateStickerCanvas(
     createStickerCanvas(image, image.width * low, image.height * low),
-    angle,
+    angle
   );
 
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const scale = (low + high) / 2;
-    const stickerCanvas = createStickerCanvas(image, image.width * scale, image.height * scale);
+    const stickerCanvas = createStickerCanvas(
+      image,
+      image.width * scale,
+      image.height * scale
+    );
     const rotated = rotateStickerCanvas(stickerCanvas, angle);
 
     if (rotated.width <= box.width && rotated.height <= box.height) {
@@ -536,15 +586,15 @@ function createFallbackAsset(
 }
 
 function createFallbackAssets(images: DrawableImage[]) {
-  return images.map((image, index) => (
+  return images.map((image, index) =>
     createFallbackAsset(image, FALLBACK_BOXES[index], index)
-  ));
+  );
 }
 
 function createDenseAssets(images: DrawableImage[]) {
-  return images.map((image, index) => (
+  return images.map((image, index) =>
     createFallbackAsset(image, DENSE_LAYOUT_BOXES[index], index)
-  ));
+  );
 }
 
 function imageAspect(image: DrawableImage) {
@@ -556,9 +606,10 @@ function balancedUsageCounts(imageCount: number) {
   const baseCount = Math.floor(STICKERS_PER_SHEET / imageCount);
   const remainder = STICKERS_PER_SHEET % imageCount;
 
-  return Array.from({ length: imageCount }, (_, index) => (
-    baseCount + (index < remainder ? 1 : 0)
-  ));
+  return Array.from(
+    { length: imageCount },
+    (_, index) => baseCount + (index < remainder ? 1 : 0)
+  );
 }
 
 function chooseImagesForDenseLayout(sourceImages: DrawableImage[]) {
@@ -597,8 +648,16 @@ function estimateSheetFill(assets: StickerAsset[]) {
   for (const asset of assets) {
     const left = clamp(asset.x, SAFE_MARGIN_PX, A6_WIDTH - SAFE_MARGIN_PX);
     const top = clamp(asset.y, SAFE_MARGIN_PX, A6_HEIGHT - SAFE_MARGIN_PX);
-    const right = clamp(asset.x + asset.canvas.width, SAFE_MARGIN_PX, A6_WIDTH - SAFE_MARGIN_PX);
-    const bottom = clamp(asset.y + asset.canvas.height, SAFE_MARGIN_PX, A6_HEIGHT - SAFE_MARGIN_PX);
+    const right = clamp(
+      asset.x + asset.canvas.width,
+      SAFE_MARGIN_PX,
+      A6_WIDTH - SAFE_MARGIN_PX
+    );
+    const bottom = clamp(
+      asset.y + asset.canvas.height,
+      SAFE_MARGIN_PX,
+      A6_HEIGHT - SAFE_MARGIN_PX
+    );
     const startX = Math.floor((left - SAFE_MARGIN_PX) / COVERAGE_CELL_PX);
     const startY = Math.floor((top - SAFE_MARGIN_PX) / COVERAGE_CELL_PX);
     const endX = Math.ceil((right - SAFE_MARGIN_PX) / COVERAGE_CELL_PX);
@@ -618,12 +677,15 @@ function estimateSheetFill(assets: StickerAsset[]) {
 }
 
 async function createStickerAssets(cutouts: Cutout[]) {
-  const sourceImages = await Promise.all(cutouts.map(async (cutout) => (
-    trimTransparentPadding(removeSolidEdgeMatte(await loadImage(cutout.url)))
-  )));
-  const repeatedImages = Array.from({ length: STICKERS_PER_SHEET }, (_, index) => (
-    sourceImages[index % sourceImages.length]
-  ));
+  const sourceImages = await Promise.all(
+    cutouts.map(async (cutout) =>
+      trimTransparentPadding(removeSolidEdgeMatte(await loadImage(cutout.url)))
+    )
+  );
+  const repeatedImages = Array.from(
+    { length: STICKERS_PER_SHEET },
+    (_, index) => sourceImages[index % sourceImages.length]
+  );
   const images = chooseImagesForDenseLayout(sourceImages);
 
   const denseAssets = createDenseAssets(images);
@@ -634,10 +696,14 @@ async function createStickerAssets(cutouts: Cutout[]) {
   for (const globalScale of PACK_SCALES) {
     const unplaced = repeatedImages.map((image, index) => {
       const anchor = PACK_ANCHORS[index];
-      const targetArea = BASE_STICKER_AREA * anchor.weight * globalScale * globalScale;
+      const targetArea =
+        BASE_STICKER_AREA * anchor.weight * globalScale * globalScale;
       const { width, height } = targetSizeForImage(image, targetArea);
       const stickerCanvas = createStickerCanvas(image, width, height);
-      const rotated = rotateStickerCanvas(stickerCanvas, anchor.rotation * (Math.PI / 180));
+      const rotated = rotateStickerCanvas(
+        stickerCanvas,
+        anchor.rotation * (Math.PI / 180)
+      );
 
       return {
         canvas: rotated,
@@ -651,7 +717,9 @@ async function createStickerAssets(cutouts: Cutout[]) {
     if (packed && estimateSheetFill(packed) >= MIN_SHEET_FILL_RATIO) return packed;
   }
 
-  return denseAssets.length ? denseAssets : createFallbackAssets(repeatedImages);
+  return denseAssets.length
+    ? denseAssets
+    : createFallbackAssets(repeatedImages);
 }
 
 async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
@@ -681,10 +749,17 @@ export default function Home() {
   const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const previewUrls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
+  const previewUrls = useMemo(
+    () => files.map((file) => URL.createObjectURL(file)),
+    [files]
+  );
+  const selectedCount = files.length;
+  const previewReady = cutouts.length > 0;
 
   function applyFiles(nextFiles: File[]) {
-    const imageFiles = nextFiles.filter((file) => file.type.startsWith("image/"));
+    const imageFiles = nextFiles.filter((file) =>
+      file.type.startsWith("image/")
+    );
     const selected = imageFiles.slice(0, MAX_UPLOADS);
     setFiles(selected);
     setCutouts([]);
@@ -692,7 +767,7 @@ export default function Home() {
     setStatus(
       selected.length
         ? `${selected.length} image(s) selected.`
-        : "Upload up to 5 dog photos.",
+        : "Upload up to 5 dog photos."
     );
   }
 
@@ -706,7 +781,7 @@ export default function Home() {
     setStatus(
       imageFiles.length
         ? `${imageFiles.length} transparent test image(s) selected.`
-        : "Upload up to 5 dog photos.",
+        : "Upload up to 5 dog photos."
     );
   }
 
@@ -743,7 +818,9 @@ export default function Home() {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
-      throw new Error(payload?.error ?? `Background removal failed for ${file.name}.`);
+      throw new Error(
+        payload?.error ?? `Background removal failed for ${file.name}.`
+      );
     }
 
     const blob = await response.blob();
@@ -764,7 +841,9 @@ export default function Home() {
 
     try {
       setStatus(`Removing backgrounds 1-${files.length}/${files.length}...`);
-      const nextCutouts = await Promise.all(files.map((file) => removeBackground(file)));
+      const nextCutouts = await Promise.all(
+        files.map((file) => removeBackground(file))
+      );
 
       setStatus("Drawing 10 stickers...");
       setCutouts(nextCutouts);
@@ -773,7 +852,10 @@ export default function Home() {
       const fill = await drawSheet(canvas, nextCutouts);
       setStatus(`Sticker sheet ready. Fill ${Math.round(fill * 100)}%.`);
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Could not generate sticker sheet.";
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "Could not generate sticker sheet.";
       setError(message);
       setStatus("Generation failed.");
     } finally {
@@ -802,7 +884,10 @@ export default function Home() {
       const fill = await drawSheet(canvas, nextCutouts);
       setStatus(`Test sticker sheet ready. Fill ${Math.round(fill * 100)}%.`);
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Could not generate test sticker sheet.";
+      const message =
+        caught instanceof Error
+          ? caught.message
+          : "Could not generate test sticker sheet.";
       setError(message);
       setStatus("Generation failed.");
     } finally {
@@ -822,19 +907,72 @@ export default function Home() {
 
   return (
     <main className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.brand}>
+          <span className={styles.logoMark}>멍</span>
+          <span>멍스티커</span>
+        </div>
+        <nav className={styles.nav}>
+          <a>내 시안</a>
+          <a>주문 내역</a>
+          <a>제작 가이드</a>
+        </nav>
+        <div className={styles.profile}>
+          <span className={styles.bell}>3</span>
+          <span className={styles.avatar}>멍</span>
+          <span>멍멍이맘</span>
+          <span className={styles.chevron}>⌄</span>
+        </div>
+      </header>
+
+      <div className={styles.workflow}>
+        {[
+          "업로드",
+          "시안 생성",
+          "시안 확인",
+          "결제",
+          "관리자 확인",
+          "제작",
+          "배송",
+        ].map((label, index) => (
+          <div
+            className={`${styles.step} ${
+              index === 1 ? styles.stepActive : ""
+            } ${index === 0 ? styles.stepDone : ""}`}
+            key={label}
+          >
+            <span className={styles.stepIcon}>
+              {index === 0 ? "↥" : index === 1 ? "✦" : index + 1}
+            </span>
+            <span>{label}</span>
+          </div>
+        ))}
+      </div>
+
       <div className={styles.shell}>
-        <section className={styles.panel}>
-          <h1 className={styles.title}>Pet Sticker Sheet</h1>
-          <p className={styles.subtitle}>Upload dog photos, remove backgrounds, and make one A6 page with 10 stickers.</p>
+        <section className={styles.uploadPanel}>
+          <div className={styles.panelHeader}>
+            <h2>사진 업로드</h2>
+            <span className={styles.countBadge}>
+              {selectedCount} / {MAX_UPLOADS}장
+            </span>
+          </div>
 
           <label
-            className={`${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""}`}
+            className={`${styles.dropzone} ${
+              isDragging ? styles.dropzoneActive : ""
+            }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <span className={styles.dropTitle}>Drop images here</span>
-            <span className={styles.dropHint}>or choose files from your computer</span>
+            <span className={styles.uploadIcon}>⇧</span>
+            <span className={styles.dropTitle}>
+              여기에 반려동물 사진을 업로드하세요
+            </span>
+            <span className={styles.dropHint}>
+              JPG, PNG, WEBP / 최대 {MAX_UPLOADS}장
+            </span>
             <input
               className={styles.fileInput}
               type="file"
@@ -844,31 +982,45 @@ export default function Home() {
             />
           </label>
 
-          <div className={styles.meta}>Maximum {MAX_UPLOADS} images. The uploaded dogs repeat until the sheet has {STICKERS_PER_SHEET} stickers.</div>
-
           {previewUrls.length > 0 && (
             <div className={styles.thumbs}>
               {previewUrls.map((url, index) => (
                 <div className={styles.thumb} key={`${url}-${index}`}>
                   <img src={url} alt={`Upload ${index + 1}`} />
+                  <span className={styles.thumbCheck}>✓</span>
                 </div>
               ))}
             </div>
           )}
 
           <div className={styles.actions}>
-            <button className={styles.primary} disabled={isGenerating || files.length === 0} onClick={generate}>
-              {isGenerating ? "Generating..." : "Generate"}
+            <button
+              className={styles.primary}
+              disabled={isGenerating || files.length === 0}
+              onClick={generate}
+            >
+              {isGenerating ? "시안 생성 중" : "시안 생성하기"}
             </button>
-            <button className={styles.secondary} disabled={cutouts.length === 0} onClick={download}>
-              Download PNG
+            <button
+              className={styles.secondary}
+              disabled={selectedCount === 0}
+              onClick={() => {
+                setFiles([]);
+                setCutouts([]);
+                setError("");
+                setStatus("Upload up to 5 dog photos.");
+              }}
+            >
+              사진 다시 선택
             </button>
           </div>
 
-          <div className={`${styles.status} ${error ? styles.error : ""}`}>{error || status}</div>
+          <div className={`${styles.status} ${error ? styles.error : ""}`}>
+            {error || status}
+          </div>
 
           <div className={styles.testPanel}>
-            <div className={styles.testTitle}>Test with transparent PNGs</div>
+            <div className={styles.testTitle}>배경제거 완료 이미지 테스트</div>
             <input
               className={styles.fileInput}
               type="file"
@@ -881,22 +1033,117 @@ export default function Home() {
               disabled={isGenerating || testFiles.length === 0}
               onClick={generateFromTransparentImages}
             >
-              Generate test sheet
+              테스트 시안 생성
             </button>
           </div>
         </section>
 
-        <section className={styles.previewArea}>
+        <section className={styles.progressPanel}>
+          <div className={styles.progressCopy}>
+            <p>우리 아이의 스티커를</p>
+            <h1>정성스럽게 만들고 있어요</h1>
+            <span>잠시만 기다려 주세요.</span>
+            <small>귀여운 시안이 곧 완성돼요.</small>
+          </div>
+          <div className={styles.progressRing}>
+            <div className={styles.ringInner}>발</div>
+          </div>
+          <div className={styles.progressBar}>
+            <span
+              style={{
+                width: isGenerating ? "82%" : previewReady ? "100%" : "18%",
+              }}
+            />
+          </div>
+          <div className={styles.progressMeta}>
+            {isGenerating
+              ? "예상 완료 시간 18초"
+              : previewReady
+                ? "시안 생성 완료"
+                : "사진을 올리고 시안을 생성하세요"}
+          </div>
+          <div className={styles.decorOne}>✦</div>
+          <div className={styles.decorTwo}>발</div>
+          <div className={styles.groundDog} />
+        </section>
+
+        <aside className={styles.previewPanel}>
+          <div className={styles.panelHeader}>
+            <h2>실시간 시안 미리보기</h2>
+            <button className={styles.selectButton}>A6 스티커 1장⌄</button>
+          </div>
+
           <div className={styles.previewFrame}>
-            {cutouts.length === 0 && <div className={styles.empty}>Preview appears here after generation.</div>}
+            {!previewReady && (
+              <div className={styles.empty}>
+                시안 생성 후 이곳에 미리보기가 표시됩니다.
+              </div>
+            )}
             <canvas
               ref={canvasRef}
               className={styles.canvas}
-              style={{ display: cutouts.length === 0 ? "none" : "block" }}
+              style={{ display: previewReady ? "block" : "none" }}
             />
           </div>
-        </section>
+
+          <div className={styles.zoomControls}>
+            <button>−</button>
+            <span>100%</span>
+            <button>＋</button>
+            <button>원본 크기</button>
+          </div>
+
+          <div className={styles.orderBox}>
+            <div>
+              <strong>A6 스티커 1장</strong>
+              <b>₩9,900</b>
+              <small>배송비 ₩2,500 · 3만원 이상 무료</small>
+            </div>
+            <div className={styles.quantity}>
+              <span>수량 선택</span>
+              <div>
+                <button>−</button>
+                <strong>1</strong>
+                <button>＋</button>
+              </div>
+            </div>
+            <div className={styles.total}>
+              <span>총 결제금액</span>
+              <strong>₩9,900</strong>
+            </div>
+            <button
+              className={styles.buyButton}
+              disabled={!previewReady}
+              onClick={download}
+            >
+              이 시안으로 PNG 다운로드
+            </button>
+          </div>
+        </aside>
       </div>
+
+      <section className={styles.afterFlow}>
+        <h2>주문 후 진행 과정</h2>
+        <div className={styles.processCards}>
+          {[
+            ["결제 완료", "결제가 완료되면 바로 제작이 시작돼요.", "green"],
+            ["관리자 확인", "관리자가 시안을 확인하고 제작을 승인해요.", "blue"],
+            ["제작", "제작하게 인쇄 후 정성껏 재단해요.", "yellow"],
+            ["배송 출발", "안전하게 포장하여 빠르게 배송해 드려요.", "purple"],
+          ].map(([title, text, tone], index) => (
+            <div
+              className={`${styles.processCard} ${styles[tone]}`}
+              key={title}
+            >
+              <span className={styles.processIcon}>{index + 1}</span>
+              <div>
+                <strong>{title}</strong>
+                <p>{text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
