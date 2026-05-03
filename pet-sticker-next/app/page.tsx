@@ -550,8 +550,17 @@ function imageAspect(image: DrawableImage) {
   return size.width / size.height;
 }
 
+function balancedUsageCounts(imageCount: number) {
+  const baseCount = Math.floor(STICKERS_PER_SHEET / imageCount);
+  const remainder = STICKERS_PER_SHEET % imageCount;
+
+  return Array.from({ length: imageCount }, (_, index) => (
+    baseCount + (index < remainder ? 1 : 0)
+  ));
+}
+
 function chooseImagesForDenseLayout(sourceImages: DrawableImage[]) {
-  const usageCounts = sourceImages.map(() => 0);
+  const remainingCounts = balancedUsageCounts(sourceImages.length);
 
   return DENSE_LAYOUT_BOXES.map((box) => {
     const boxAspect = box.width / box.height;
@@ -561,19 +570,19 @@ function chooseImagesForDenseLayout(sourceImages: DrawableImage[]) {
     let bestScore = Number.POSITIVE_INFINITY;
 
     for (let index = 0; index < sourceImages.length; index += 1) {
+      if (remainingCounts[index] === 0) continue;
+
       const aspect = imageAspect(sourceImages[index]);
       const effectiveAspect = isSidewaysSlot ? 1 / aspect : aspect;
       const aspectScore = Math.abs(Math.log(effectiveAspect / boxAspect));
-      const usagePenalty = usageCounts[index] * 0.22;
-      const score = aspectScore + usagePenalty;
 
-      if (score < bestScore) {
-        bestScore = score;
+      if (aspectScore < bestScore) {
+        bestScore = aspectScore;
         bestIndex = index;
       }
     }
 
-    usageCounts[bestIndex] += 1;
+    remainingCounts[bestIndex] -= 1;
     return sourceImages[bestIndex];
   });
 }
