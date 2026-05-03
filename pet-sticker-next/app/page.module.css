@@ -88,55 +88,11 @@
   font-size: 18px;
 }
 
-.workflow {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 10px;
-  margin: 24px 36px 20px;
-  padding: 12px 18px;
-  border: 1px solid #e4ecf0;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 14px 44px rgba(31, 57, 76, 0.04);
-}
-
-.step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 48px;
-  border-radius: 8px;
-  color: #7b8796;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.stepActive {
-  background: linear-gradient(135deg, #eaf8f2, #f1fbf7);
-  color: #08a865;
-}
-
-.stepDone {
-  color: #08a865;
-}
-
-.stepIcon {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  background: #eef5f3;
-  color: currentColor;
-  font-size: 14px;
-}
-
 .shell {
   display: grid;
   grid-template-columns: minmax(320px, 410px) minmax(380px, 1fr) minmax(360px, 480px);
   gap: 22px;
-  padding: 0 36px;
+  padding: 24px 36px 0;
 }
 
 .uploadPanel,
@@ -688,7 +644,6 @@
     overflow-x: auto;
   }
 
-  .workflow,
   .shell,
   .afterFlow {
     margin-left: 16px;
@@ -697,12 +652,8 @@
     padding-right: 16px;
   }
 
-  .workflow {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .shell {
-    padding: 0 16px;
+    padding: 18px 16px 0;
   }
 
   .thumbs,

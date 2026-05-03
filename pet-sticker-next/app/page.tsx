@@ -925,30 +925,6 @@ export default function Home() {
         </div>
       </header>
 
-      <div className={styles.workflow}>
-        {[
-          "업로드",
-          "시안 생성",
-          "시안 확인",
-          "결제",
-          "관리자 확인",
-          "제작",
-          "배송",
-        ].map((label, index) => (
-          <div
-            className={`${styles.step} ${
-              index === 1 ? styles.stepActive : ""
-            } ${index === 0 ? styles.stepDone : ""}`}
-            key={label}
-          >
-            <span className={styles.stepIcon}>
-              {index === 0 ? "↥" : index === 1 ? "✦" : index + 1}
-            </span>
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-
       <div className={styles.shell}>
         <section className={styles.uploadPanel}>
           <div className={styles.panelHeader}>
