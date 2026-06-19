@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
+import type { MlReport } from "@/lib/ml-client";
 
 const MAX_UPLOADS = 5;
 const STICKERS_PER_SHEET = 10;
@@ -780,6 +782,7 @@ export default function Home() {
   const [status, setStatus] = useState("Upload up to 5 dog photos.");
   const [error, setError] = useState("");
   const [orderNotice, setOrderNotice] = useState("");
+  const [mlReport, setMlReport] = useState<MlReport | null>(null);
   const [orderForm, setOrderForm] = useState<OrderForm>({
     name: "",
     phone: "",
@@ -961,7 +964,8 @@ export default function Home() {
 
     const orderId = createOrderId();
     setIsSubmittingOrder(true);
-    setOrderNotice("주문 파일을 저장하는 중입니다...");
+    setMlReport(null);
+    setOrderNotice("주문 파일을 저장하고 품질을 분석하는 중입니다...");
 
     try {
       const sheetBlob = await canvasToPngBlob(canvas);
@@ -982,6 +986,11 @@ export default function Home() {
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error ?? "Could not save order files.");
+      }
+
+      const result = await response.json().catch(() => null);
+      if (result?.mlReport) {
+        setMlReport(result.mlReport as MlReport);
       }
     } catch (caught) {
       const message =
@@ -1034,7 +1043,7 @@ export default function Home() {
         </div>
         <nav className={styles.nav}>
           <a>내 시안</a>
-          <a>주문 내역</a>
+          <Link href="/admin">주문·관리</Link>
           <a>제작 가이드</a>
         </nav>
         <div className={styles.profile}>
@@ -1241,6 +1250,28 @@ export default function Home() {
             </button>
             {orderNotice && (
               <div className={styles.orderNotice}>{orderNotice}</div>
+            )}
+            {mlReport && mlReport.status === "ok" && (
+              <div
+                className={`${styles.qualityCard} ${
+                  styles[`quality${mlReport.qualityClass === "제작 적합" ? "Pass" : mlReport.qualityClass === "보정 권장" ? "Retouch" : "Reshoot"}`]
+                }`}
+              >
+                <div className={styles.qualityHead}>
+                  <span className={styles.qualityClass}>{mlReport.qualityClass}</span>
+                  <span className={styles.qualityScore}>{Math.round(mlReport.score)}점</span>
+                </div>
+                <p className={styles.qualityRec}>{mlReport.recommendation}</p>
+                <div className={styles.qualityMeta}>
+                  <span>모델 {mlReport.modelVersion}</span>
+                  <span>신뢰도 {Math.round(mlReport.confidence * 100)}%</span>
+                </div>
+              </div>
+            )}
+            {mlReport && mlReport.status === "unavailable" && (
+              <div className={styles.orderNotice}>
+                품질 분석 서비스에 연결하지 못했습니다. 주문은 정상 저장되었습니다.
+              </div>
             )}
           </div>
         </aside>

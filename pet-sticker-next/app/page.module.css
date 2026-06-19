@@ -699,3 +699,61 @@
     min-height: 440px;
   }
 }
+
+/* ML 품질 예측 결과 카드 */
+.qualityCard {
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #e4e8ef;
+  padding: 12px 14px;
+  background: #fafbfc;
+}
+
+.qualityPass {
+  border-color: #b7e4c7;
+  background: #f1fbf4;
+}
+
+.qualityRetouch {
+  border-color: #ffe2a8;
+  background: #fff8ea;
+}
+
+.qualityReshoot {
+  border-color: #f6c3c3;
+  background: #fdf2f2;
+}
+
+.qualityHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.qualityClass {
+  font-size: 14px;
+  font-weight: 900;
+  color: #1f2937;
+}
+
+.qualityScore {
+  font-size: 18px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.qualityRec {
+  margin: 8px 0 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.qualityMeta {
+  display: flex;
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6b7280;
+}

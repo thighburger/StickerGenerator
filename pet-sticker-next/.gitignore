@@ -4,7 +4,8 @@ out/
 dist/
 
 BackgroundRemovedImages/
-orders/
+# 런타임 주문 저장 디렉터리(루트 한정). app/api/orders 라우트는 추적되어야 함
+/orders/
 *.dataless-backup-*
 
 .env
