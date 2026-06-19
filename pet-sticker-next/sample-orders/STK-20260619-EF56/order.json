@@ -1,0 +1,18 @@
+{
+  "orderId": "STK-20260619-EF56",
+  "name": "박집사",
+  "phone": "010-9876-5432",
+  "address": "대전광역시 유성구 야옹로 21",
+  "memo": "흐릿하게 나온 사진인데 가능할까요?",
+  "createdAt": "2026-06-19T01:25:10.000Z",
+  "photos": ["photo-1-puppy.png"],
+  "mlReport": {
+    "status": "ok",
+    "score": 31.7,
+    "qualityClass": "재촬영 권장",
+    "recommendation": "해상도가 낮거나 흐릿/어두워 인쇄 품질이 떨어질 수 있습니다. 재촬영을 권장합니다. 사진 해상도가 낮습니다. 더 높은 해상도로 촬영/업로드하세요.",
+    "confidence": 0.74,
+    "modelVersion": "v1",
+    "requestId": "c3d4e5f6a1b2"
+  }
+}
