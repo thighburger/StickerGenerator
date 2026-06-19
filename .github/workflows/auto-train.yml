@@ -1,0 +1,47 @@
+name: Auto Train
+
+# 데이터/학습 코드 변경 시 자동 재학습 → 평가 → 챔피언 승격(개선 시) → artifact 업로드.
+# 강의의 "push → test → train → evaluate → register" MLOps 자동화 패턴.
+on:
+  push:
+    paths:
+      - "pet-sticker-ml/data/**"
+      - "pet-sticker-ml/src/pet_sticker_ml/train.py"
+      - "pet-sticker-ml/src/pet_sticker_ml/dataset.py"
+  workflow_dispatch:
+    inputs:
+      data_version:
+        description: "학습 데이터 버전"
+        default: "v2"
+        required: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pet-sticker-ml
+    env:
+      PYTHONPATH: src
+      DATA_VERSION: ${{ github.event.inputs.data_version || 'v2' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pet-sticker-ml/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: 테스트 게이트
+        run: python -m pytest -q
+      - name: 학습 (MLflow 기록)
+        run: python -m pet_sticker_ml.train --tracking-uri file:./mlruns --data-version "$DATA_VERSION"
+      - name: 승격 평가 (macro-F1 개선 시 챔피언 교체)
+        run: python -m pet_sticker_ml.model_promoter --min-delta 0.0
+      - name: 학습/챔피언 artifact 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: champion-${{ github.run_number }}
+          path: |
+            pet-sticker-ml/champion/
+            pet-sticker-ml/mlruns/

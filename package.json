@@ -1,0 +1,11 @@
+{
+  "name": "pet-sticker-mlops",
+  "version": "1.0.0",
+  "private": true,
+  "description": "반려동물 스티커 생성 서비스 — 기말 MLOps 파이프라인 (Next.js + FastAPI ML + MLflow)",
+  "scripts": {
+    "harness": "node scripts/final-harness.mjs",
+    "harness:full": "node scripts/final-harness.mjs --full",
+    "capture": "node scripts/capture-report-screenshots.mjs"
+  }
+}
