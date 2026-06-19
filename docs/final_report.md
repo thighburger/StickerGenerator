@@ -23,9 +23,10 @@
   - 웹 앱(Next.js) — Vercel: 중간 프로젝트에서 사용한 Vercel 프로젝트에 그대로 배포.
     `ML_SERVICE_URL` 환경변수로 ML 서비스와 연결. (캡쳐: `docs/assets/app-main.png`)
   - ML 추론 서비스(FastAPI) — Render(Docker): `render.yaml` 블루프린트로 배포, `/health` 로 확인.
-    (캡쳐: `docs/assets/deploy-render-health.png`)
 
-![앱 메인 화면](assets/app-main.png)
+> **캡쳐 안내**: ML 서비스·MLflow·CI 화면 캡쳐는 `docs/assets/` 에 포함했다(각 절 참조).
+> 웹 앱 메인·관리자 화면 캡쳐는 로컬에서 `docker compose up -d` 후 `npm run capture` 로 생성한다
+> (작성 환경 제약은 **부록 B** 참조).
 
 ## 2. 소프트웨어 주요 기능
 
@@ -48,6 +49,8 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 | 서비스 | 반려동물 사진(최대 5장) | A6 스티커 시안 PNG |
 | ML | 사진(이미지 바이트) → 특징 10종 추출 | `score(0~100)`, `qualityClass(3분류)`, `recommendation`, `confidence`, `modelVersion` |
 
+![FastAPI 추론 서비스 API 문서(Swagger)](assets/fastapi-docs.png)
+
 ## 3. 실행 환경
 
 - **OS**: macOS 26 (개발) / Ubuntu(GitHub Actions, Render 컨테이너)
@@ -68,7 +71,8 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
                   → /admin 모니터링 → (피드백 반영) 재학습(v2) → 승격 또는 롤백
 ```
 
-![파이프라인/관리자 대시보드](assets/admin-dashboard.png)
+> 관리자 대시보드(`/admin`)는 주문별 ML 점수·모델버전과 예측/피드백 로그 요약·챔피언 정보를 표시한다.
+> 화면 캡쳐는 로컬 실행 후 `npm run capture` 로 생성한다(부록 B).
 
 ## 5. Git 기반 개발 과정
 
@@ -106,7 +110,8 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
   `ML_SERVICE_URL=http://ml:8000`) + `mlflow`(profile `tracking`, 5000).
 - **실행**: `docker compose up -d --build` → `curl localhost:8000/health` → `localhost:3000`.
 
-![Docker compose 상태](assets/docker-compose-ps.png)
+> Docker 실행 상태(`docker compose ps`)는 로컬에서 확인하며, CI 의 `docker` 잡에서 ML/Next 두
+> 이미지 빌드가 통과했다(6절 GitHub Actions 캡쳐 참조).
 
 ## 8. ML 모델 구성
 
@@ -168,7 +173,9 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
     하네스는 3.11/3.12 자동 탐색 + 미존재 시 명확한 SKIP 안내.
 - **문제 2**: `mlflow.sklearn.log_model(name=...)` 인자 오류(2.x 는 `artifact_path`). → 시그니처 수정으로 모델/레지스트리 정상 기록.
 
-![운영 로그 요약](assets/logs-summary.png)
+![서비스 상태 확인 /health](assets/health.png)
+
+![예측/피드백 운영 로그 요약](assets/logs-summary.png)
 
 ## 13. 롤백 및 이전 모델 관리
 
@@ -217,3 +224,31 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 | Docker/실행환경(5) | ML/Next Dockerfile + compose + healthcheck |
 | 배포/운영(5) | Vercel/Render 배포, `/health`·예측/피드백 로그·관리자 모니터링 |
 | 보너스(10) | 롤백 CLI, 자동 승격, 강화된 테스트(23개)+통합 하네스, 운영 로그 분석, 재학습 파이프라인 |
+
+---
+
+### 부록 B. 캡쳐 목록 및 작성 환경 안내
+
+`docs/assets/` 에 포함된 실제 캡쳐:
+
+| 파일 | 내용 |
+|---|---|
+| `mlflow-ui.png` | MLflow 실험 run 목록(5 run, train.py/retrain.py 출처, 등록 모델) |
+| `model-info.png` | 챔피언 모델 정보 API(버전·alias·metric·featureNames) |
+| `logs-summary.png` | 예측/피드백 로그 요약(운영 로그) |
+| `fastapi-docs.png` | FastAPI 추론 서비스 Swagger 문서 |
+| `health.png` | 서비스 상태(`/health`) |
+| `github-actions.png` | CI 전체 잡 통과(next·ml·docker·harness) + workflow 그래프 |
+
+웹 앱 메인/관리자 화면 캡쳐는 아래로 생성한다(캡쳐 자동화 스크립트 제공):
+
+```bash
+docker compose up -d --build           # next(:3000) + ml(:8000)
+npm run capture                        # docs/assets/app-main.png, admin-dashboard.png 등 생성
+```
+
+**미포함 사유(정직 보고)**: 보고서 작성 환경의 디스크가 100% 가득 차 로컬 Next 프로덕션 빌드가
+불가했고, Vercel 프리뷰 배포에는 배포 보호(SSO 로그인)가 설정되어 자동 캡쳐가 차단되었다.
+대신 **동일 코드**가 CI 의 `next`(typecheck+build)·`docker`(이미지 빌드)·`harness`(앱↔ML 연동
+검증) 잡에서 모두 통과함을 `github-actions.png` 로 확인할 수 있으며, 앱 메인/관리자 화면은 위
+명령으로 누구나 재현·캡쳐할 수 있다.

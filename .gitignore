@@ -2,3 +2,7 @@
 .git 2/
 .git.dataless-*/
 .report.md
+
+# 루트 도구(하네스·캡쳐) 의존성 — 로컬 전용
+/node_modules/
+/package-lock.json

@@ -52,8 +52,12 @@ let skipped = 0;
 for (const target of TARGETS) {
   const file = join(OUT, `${target.name}.png`);
   try {
-    await page.goto(target.url, { waitUntil: "networkidle", timeout: 12000 });
-    await page.waitForTimeout(700);
+    const isSpa = target.name === "mlflow-ui" || target.name === "github-actions";
+    await page.goto(target.url, {
+      waitUntil: isSpa ? "domcontentloaded" : "networkidle",
+      timeout: isSpa ? 30000 : 15000,
+    });
+    await page.waitForTimeout(isSpa ? 4000 : 900);
     await page.screenshot({ path: file, fullPage: Boolean(target.fullPage) });
     console.log(`  ✔ ${target.name}  ←  ${target.url}`);
     ok += 1;
