@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     // ML 품질 예측: 업로드한 첫 사진 기준 (없으면 시안 PNG)
     if (firstPhoto) {
       order.mlReport = await requestQualityPrediction(
-        new Blob([firstPhoto], { type: "image/png" }),
+        new Blob([new Uint8Array(firstPhoto)], { type: "image/png" }),
         `${orderId}-photo.png`,
       );
     } else {
