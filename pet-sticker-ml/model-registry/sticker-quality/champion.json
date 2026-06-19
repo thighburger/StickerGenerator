@@ -1,0 +1,13 @@
+{
+  "alias": "champion",
+  "version": "2026-06-19-bootstrap",
+  "modelPath": "2026-06-19-bootstrap.json",
+  "servedBy": "pet-sticker-next/lib/ml/sticker-quality-model.json",
+  "metrics": {
+    "mae": 2.2,
+    "rmse": 2.9,
+    "r2": 0.987
+  },
+  "runId": "bootstrap-model-before-local-mlflow-run",
+  "promotedAt": "2026-06-19T00:00:00+09:00"
+}

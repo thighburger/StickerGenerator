@@ -2,3 +2,8 @@
 .git 2/
 .git.dataless-*/
 .report.md
+lecture_pdf/
+pet-sticker-ml/mlruns/
+pet-sticker-ml/.venv/
+pet-sticker-ml/.pytest_cache/
+pet-sticker-ml/**/__pycache__/

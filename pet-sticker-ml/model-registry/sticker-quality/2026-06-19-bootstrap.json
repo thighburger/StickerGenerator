@@ -1,0 +1,59 @@
+{
+  "modelName": "pet-sticker-quality",
+  "modelType": "standardized-linear-regression",
+  "version": "2026-06-19-bootstrap",
+  "alias": "champion",
+  "createdAt": "2026-06-19T00:00:00+09:00",
+  "runId": "bootstrap-model-before-local-mlflow-run",
+  "featureNames": [
+    "resolution_score",
+    "aspect_balance",
+    "brightness_balance",
+    "contrast_score",
+    "edge_score",
+    "alpha_balance",
+    "sheet_fill_ratio"
+  ],
+  "means": [
+    0.62,
+    0.7,
+    0.7,
+    0.58,
+    0.55,
+    0.65,
+    0.74
+  ],
+  "scales": [
+    0.24,
+    0.22,
+    0.2,
+    0.24,
+    0.24,
+    0.22,
+    0.1
+  ],
+  "coefficients": [
+    4.32,
+    2.64,
+    2.6,
+    3.12,
+    3.36,
+    2.86,
+    1.7
+  ],
+  "intercept": 64.93,
+  "thresholds": {
+    "good": 82,
+    "warning": 65
+  },
+  "metrics": {
+    "mae": 2.2,
+    "rmse": 2.9,
+    "r2": 0.987
+  },
+  "training": {
+    "seed": 42,
+    "nSamples": 900,
+    "dataSource": "bootstrap-synthetic-v1"
+  }
+}
