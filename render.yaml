@@ -1,0 +1,18 @@
+# Render 배포 블루프린트 — ML 추론 서비스(Docker)
+# 사용: Render 대시보드 → New → Blueprint → 이 저장소 선택 → 자동 인식
+# (Next 앱은 Vercel 에 배포하고, 그 환경변수 ML_SERVICE_URL 에 아래 서비스 URL 을 넣는다)
+services:
+  - type: web
+    name: pet-sticker-ml
+    runtime: docker
+    repo: https://github.com/thighburger/StickerGenerator
+    rootDir: pet-sticker-ml
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: MODEL_MODE
+        value: champion
+      - key: LOG_DIR
+        value: /app/logs

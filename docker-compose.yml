@@ -1,0 +1,55 @@
+# 로컬 통합 실행: Next 앱 + ML 추론 서비스 (+ 선택: MLflow tracking 서버)
+#   docker compose up -d --build            # next + ml
+#   docker compose --profile tracking up -d # + MLflow UI(:5000)
+services:
+  ml:
+    build:
+      context: ./pet-sticker-ml
+    image: pet-sticker-ml:local
+    container_name: pet-sticker-ml
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_MODE: champion
+      LOG_DIR: /app/logs
+    volumes:
+      - ./pet-sticker-ml/logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    restart: unless-stopped
+
+  next:
+    build:
+      context: ./pet-sticker-next
+    image: pet-sticker-next:local
+    container_name: pet-sticker-next
+    ports:
+      - "3000:3000"
+    environment:
+      ML_SERVICE_URL: http://ml:8000
+      ML_TIMEOUT_MS: "3000"
+      REMOVE_BG_API_KEY: ${REMOVE_BG_API_KEY:-}
+    depends_on:
+      ml:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # 보고서용 MLflow Tracking 서버 (기본 비활성, --profile tracking 으로 실행)
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.22.0
+    container_name: pet-sticker-mlflow
+    profiles: ["tracking"]
+    ports:
+      - "5000:5000"
+    working_dir: /mlflow
+    volumes:
+      - ./pet-sticker-ml:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:///mlflow.db
+      --default-artifact-root /mlflow/mlartifacts
+      --host 0.0.0.0 --port 5000
