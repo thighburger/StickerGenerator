@@ -1,0 +1,178 @@
+.page {
+  min-height: 100vh;
+  background: #f7faf9;
+  color: #151a22;
+  padding: 32px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1040px;
+  margin: 0 auto 24px;
+}
+
+.header h1 {
+  margin: 4px 0 0;
+  font-size: 30px;
+}
+
+.eyebrow {
+  color: #08a865;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.count {
+  border-radius: 8px;
+  background: #e8f8f1;
+  color: #08794d;
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
+.empty,
+.list {
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.empty {
+  border: 1px solid #dfe8ee;
+  border-radius: 10px;
+  background: #fff;
+  padding: 28px;
+  color: #687789;
+  font-weight: 800;
+}
+
+.list {
+  display: grid;
+  gap: 14px;
+}
+
+.order {
+  border: 1px solid #dfe8ee;
+  border-radius: 10px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 14px 34px rgba(31, 57, 76, 0.06);
+}
+
+.orderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.orderHeader strong {
+  font-size: 18px;
+}
+
+.orderHeader span {
+  border-radius: 8px;
+  background: #fff8e5;
+  color: #9a6700;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.order dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.order dl div {
+  display: grid;
+  gap: 4px;
+}
+
+.order dt {
+  color: #687789;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.order dd {
+  margin: 0;
+  color: #273243;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.path {
+  margin: 14px 0 0;
+  border-top: 1px solid #edf2f5;
+  padding-top: 12px;
+  color: #687789;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.qualityNote {
+  margin-top: 14px;
+  border-radius: 8px;
+  background: #edf9f4;
+  color: #08794d;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.statusForm {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.statusForm select,
+.statusForm button {
+  min-height: 38px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 900;
+}
+
+.statusForm select {
+  min-width: 140px;
+  border: 1px solid #dfe8ee;
+  background: #fff;
+  color: #273243;
+  padding: 0 10px;
+}
+
+.statusForm button {
+  border: 0;
+  background: #08a865;
+  color: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 20px;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .order dl {
+    grid-template-columns: 1fr;
+  }
+
+  .statusForm {
+    flex-direction: column;
+  }
+}

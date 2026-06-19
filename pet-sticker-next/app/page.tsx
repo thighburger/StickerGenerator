@@ -1,6 +1,10 @@
 "use client";
 
 import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
+import {
+  analyzeStickerQuality,
+  type StickerQualityReport,
+} from "@/lib/ml/sticker-quality";
 import styles from "./page.module.css";
 
 const MAX_UPLOADS = 5;
@@ -780,6 +784,9 @@ export default function Home() {
   const [status, setStatus] = useState("Upload up to 5 dog photos.");
   const [error, setError] = useState("");
   const [orderNotice, setOrderNotice] = useState("");
+  const [qualityReport, setQualityReport] =
+    useState<StickerQualityReport | null>(null);
+  const [qualityFeedbackNotice, setQualityFeedbackNotice] = useState("");
   const [orderForm, setOrderForm] = useState<OrderForm>({
     name: "",
     phone: "",
@@ -803,6 +810,8 @@ export default function Home() {
     const selected = imageFiles.slice(0, MAX_UPLOADS);
     setFiles(selected);
     setCutouts([]);
+    setQualityReport(null);
+    setQualityFeedbackNotice("");
     setError(imageFiles.length === 0 ? "Drop or choose image files." : "");
     setOrderNotice("");
     setStatus(
@@ -818,6 +827,8 @@ export default function Home() {
       .slice(0, MAX_UPLOADS);
     setTestFiles(imageFiles);
     setCutouts([]);
+    setQualityReport(null);
+    setQualityFeedbackNotice("");
     setError("");
     setOrderNotice("");
     setStatus(
@@ -876,6 +887,40 @@ export default function Home() {
     };
   }
 
+  async function logQualityEvent(
+    eventType: "prediction" | "feedback",
+    report: StickerQualityReport,
+    feedback?: { label: string; note?: string }
+  ) {
+    try {
+      await fetch("/api/quality-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ eventType, report, feedback }),
+      });
+    } catch {
+      // Quality logs should never block sticker generation or checkout.
+    }
+  }
+
+  async function updateQualityReport(cutoutImages: Cutout[], fill: number) {
+    const report = await analyzeStickerQuality(cutoutImages, fill);
+    setQualityReport(report);
+    setQualityFeedbackNotice("");
+    await logQualityEvent("prediction", report);
+    return report;
+  }
+
+  async function sendQualityFeedback(label: string) {
+    if (!qualityReport) return;
+
+    setQualityFeedbackNotice("피드백을 저장하는 중입니다...");
+    await logQualityEvent("feedback", qualityReport, { label });
+    setQualityFeedbackNotice("피드백이 저장됐어요.");
+  }
+
   async function generate() {
     if (files.length === 0) {
       setError("Upload at least one image.");
@@ -896,7 +941,10 @@ export default function Home() {
       const canvas = canvasRef.current;
       if (!canvas) throw new Error("Canvas is not ready.");
       const fill = await drawSheet(canvas, nextCutouts);
-      setStatus(`Sticker sheet ready. Fill ${Math.round(fill * 100)}%.`);
+      const report = await updateQualityReport(nextCutouts, fill);
+      setStatus(
+        `Sticker sheet ready. Fill ${Math.round(fill * 100)}%. AI score ${report.score}.`
+      );
     } catch (caught) {
       const message =
         caught instanceof Error
@@ -928,7 +976,10 @@ export default function Home() {
       const canvas = canvasRef.current;
       if (!canvas) throw new Error("Canvas is not ready.");
       const fill = await drawSheet(canvas, nextCutouts);
-      setStatus(`Test sticker sheet ready. Fill ${Math.round(fill * 100)}%.`);
+      const report = await updateQualityReport(nextCutouts, fill);
+      setStatus(
+        `Test sticker sheet ready. Fill ${Math.round(fill * 100)}%. AI score ${report.score}.`
+      );
     } catch (caught) {
       const message =
         caught instanceof Error
@@ -971,6 +1022,9 @@ export default function Home() {
       orderData.append("phone", orderForm.phone);
       orderData.append("address", orderForm.address);
       orderData.append("memo", orderForm.memo);
+      if (qualityReport) {
+        orderData.append("qualityReport", JSON.stringify(qualityReport));
+      }
       orderData.append("sheet", sheetBlob, `${orderId}-sheet.png`);
       files.forEach((file) => orderData.append("photos", file, file.name));
 
@@ -1103,6 +1157,8 @@ export default function Home() {
               onClick={() => {
                 setFiles([]);
                 setCutouts([]);
+                setQualityReport(null);
+                setQualityFeedbackNotice("");
                 setError("");
                 setOrderNotice("");
                 setStatus("Upload up to 5 dog photos.");
@@ -1208,6 +1264,42 @@ export default function Home() {
               <span>총 결제금액</span>
               <strong>₩9,900</strong>
             </div>
+            {qualityReport && (
+              <div className={styles.qualitySummary}>
+                <div className={styles.qualityHeader}>
+                  <span>AI 품질 점수</span>
+                  <strong>{qualityReport.score}</strong>
+                </div>
+                <div className={styles.qualityMeta}>
+                  <b>{qualityReport.label}</b>
+                  <span>model {qualityReport.modelVersion}</span>
+                </div>
+                <ul>
+                  {qualityReport.recommendations.map((recommendation) => (
+                    <li key={recommendation}>{recommendation}</li>
+                  ))}
+                </ul>
+                <div className={styles.feedbackActions}>
+                  <button
+                    type="button"
+                    onClick={() => sendQualityFeedback("good")}
+                  >
+                    시안 좋아요
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => sendQualityFeedback("retry")}
+                  >
+                    다시 촬영할게요
+                  </button>
+                </div>
+                {qualityFeedbackNotice && (
+                  <small className={styles.feedbackNotice}>
+                    {qualityFeedbackNotice}
+                  </small>
+                )}
+              </div>
+            )}
             <div className={styles.orderForm}>
               <input
                 value={orderForm.name}

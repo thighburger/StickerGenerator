@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "predev": "node ./scripts/preflight-dev.mjs",
+    "pretypecheck": "node ./scripts/preflight-dev.mjs",
     "dev": "next dev",
     "dev:clean": "node ./scripts/preflight-dev.mjs && rm -rf .next && next dev",
     "build": "node ./scripts/preflight-dev.mjs && next build",

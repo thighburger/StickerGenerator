@@ -37,6 +37,7 @@ if (process.platform === "darwin") {
     "next.config.mjs",
     "tsconfig.json",
     "app",
+    "lib",
     "node_modules",
   ];
 
