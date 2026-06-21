@@ -11,6 +11,7 @@ import {
   getModelInfo,
   mlServiceUrl,
 } from "@/lib/ml-client";
+import LogoutButton from "./LogoutButton";
 import styles from "./admin.module.css";
 
 export const runtime = "nodejs";
@@ -94,9 +95,12 @@ export default async function AdminPage() {
             주문별 ML 품질 점수 · 챔피언 모델 버전 · 예측/피드백 로그
           </p>
         </div>
-        <Link className={styles.homeLink} href="/">
-          ← 생성기로
-        </Link>
+        <div className={styles.headerActions}>
+          <Link className={styles.homeLink} href="/">
+            ← 생성기로
+          </Link>
+          <LogoutButton className={styles.logoutButton} />
+        </div>
       </header>
 
       {/* 챔피언 모델 정보 */}

@@ -37,8 +37,8 @@ $ curl https://pet-sticker-ml.onrender.com/model/info
 
 ![Render 배포 FastAPI Swagger(/docs)](assets/deploy-render-docs.png)
 
-> **캡쳐 안내**: ML 서비스(라이브 Render)·MLflow·CI 화면 캡쳐는 `docs/assets/` 에 포함했다(각 절 참조).
-> 웹 앱 메인·관리자 화면 캡쳐는 부록 B 참조(Vercel 배포 보호로 외부 자동 캡쳐 불가 → 로컬 `npm run capture` 로 생성).
+> **캡쳐 안내**: 앱 메인·관리자(로그인 포함)·ML 서비스(라이브 Render)·MLflow·CI 화면 캡쳐를 모두
+> `docs/assets/` 에 포함했다(각 절 참조).
 
 ## 2. 소프트웨어 주요 기능
 
@@ -48,6 +48,8 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 1. 반려동물 사진 업로드(최대 5장) → 배경 제거(remove.bg) → 캔버스에서 A6(1240×1748) 시안 자동 생성
 2. 시안 미리보기 및 고화질 PNG 다운로드
 3. 주문 생성: 주문번호 발급 → 주문 파일 저장 → 카카오 오픈채팅 문의
+
+![앱 메인 화면 — 업로드·시안 생성·구매 패널](assets/app-main.png)
 
 ### 2-2. ML 모델이 사용되는 위치
 - **구매(주문 저장) 시점**: Next.js `/api/orders` 가 업로드된 첫 사진을 ML 서비스 `POST /predict` 로 전달
@@ -83,8 +85,10 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
                   → /admin 모니터링 → (피드백 반영) 재학습(v2) → 승격 또는 롤백
 ```
 
-> 관리자 대시보드(`/admin`)는 주문별 ML 점수·모델버전과 예측/피드백 로그 요약·챔피언 정보를 표시한다.
-> 화면 캡쳐는 로컬 실행 후 `npm run capture` 로 생성한다(부록 B).
+관리자 대시보드(`/admin`)는 주문별 ML 점수·모델버전, 주문 통계, 챔피언 모델 정보(라이브 Render),
+예측/피드백 로그 요약을 표시한다. **관리자 인증으로 보호**되며, 아래는 로그인 후 화면이다.
+
+![관리자 대시보드 — 챔피언 모델(라이브)·주문 통계·로그 요약](assets/admin-dashboard.png)
 
 ## 5. Git 기반 개발 과정
 
@@ -224,6 +228,29 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 
 ---
 
+## 18. 실서비스 강화 기능 (추가 구현)
+
+초기 파이프라인 완성 후, **실제 서비스로서 부족한 점**을 점검해 기능을 추가했다. 각 기능은 별도 PR 로
+구현·리뷰·머지했다(기능 단위 커밋·CI 통과·스크린샷 포함).
+
+### 18-1. 관리자 인증 (보안)
+
+**문제(부족한 점)**: 운영 관리자 페이지 `/admin` 이 인증 없이 공개되어, 누구나 전체 고객의 이름·연락처·
+주소가 담긴 주문 정보를 열람할 수 있었다(개인정보 노출 위험).
+
+**구현**:
+- Next.js **미들웨어**(`middleware.ts`)로 `/admin/:path*` 전 경로를 보호. 유효 세션 쿠키가 없으면
+  `/admin/login` 으로 리다이렉트(`GET /admin` → `307`).
+- 로그인 페이지(`/admin/login`)에서 비밀번호 확인 → `ADMIN_SECRET` 기반 **HMAC-SHA256 세션 토큰**을
+  httpOnly 쿠키로 발급(`lib/auth.ts`, Web Crypto 로 Edge/Node 공용). 비밀번호는 쿠키/클라이언트에 노출되지 않음.
+- 대시보드에 **로그아웃** 버튼 추가. 비밀번호·시크릿은 환경변수(`ADMIN_PASSWORD`, `ADMIN_SECRET`)로 주입.
+
+![관리자 로그인 화면](assets/admin-login.png)
+
+로그인 성공 후에는 위 4절의 관리자 대시보드(라이브 챔피언 모델·주문 통계·로그 요약)로 진입한다.
+
+---
+
 ### 부록 A. 평가 기준 ↔ 구현 대응표
 
 | 평가 기준(배점) | 대응 구현 |
@@ -235,7 +262,7 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 | 앱·ML 기능(10) | `/api/orders`→ML `/predict`, 결과 카드·주문 저장·관리자 화면 연동 |
 | Docker/실행환경(5) | ML/Next Dockerfile + compose + healthcheck |
 | 배포/운영(5) | Vercel/Render 배포, `/health`·예측/피드백 로그·관리자 모니터링 |
-| 보너스(10) | 롤백 CLI, 자동 승격, 강화된 테스트(23개)+통합 하네스, 운영 로그 분석, 재학습 파이프라인 |
+| 보너스(10) | 롤백 CLI, 자동 승격, 강화된 테스트(23개)+통합 하네스, 운영 로그 분석, 재학습 파이프라인, **관리자 인증(보안)** 등 실서비스 강화(18절) |
 
 ---
 
@@ -253,17 +280,19 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 | `github-actions.png` | CI 전체 잡 통과(next·ml·docker·harness) + workflow 그래프 |
 | `deploy-render-health.png` | **라이브 Render 배포** `/health` 외부 응답 |
 | `deploy-render-docs.png` | **라이브 Render 배포** FastAPI Swagger(`/docs`) |
+| `app-main.png` | 웹 앱 메인(업로드·시안 생성·구매) |
+| `admin-login.png` | 관리자 로그인 화면(보안) |
+| `admin-dashboard.png` | 관리자 대시보드(로그인 후, 라이브 챔피언·주문·로그) |
 
 **실제 외부 배포 완료**: ML 서비스는 Render 에 라이브 배포되어 https://pet-sticker-ml.onrender.com 으로
-외부에서 접속·동작이 확인된다(위 캡쳐 2종). 웹 앱(Next.js)도 Vercel `main` 에 자동 배포되어 빌드 성공 상태다.
+외부에서 접속·동작이 확인된다. 웹 앱(Next.js)도 Vercel `main` 에 자동 배포되어 빌드 성공 상태다.
 
-**웹 앱 메인/관리자 화면 캡쳐만 미포함(정직 보고)**: Vercel 배포에 **배포 보호(인증)**가 켜져 있어
-외부 자동 캡쳐(401)가 차단된다. 로그인 상태에서는 정상 접속되며, 화면 캡쳐는 아래로도 재현 가능하다.
+캡쳐는 모두 자동화 스크립트로 생성한다(로컬에서 앱을 띄우고 Playwright 로 촬영):
 
 ```bash
-docker compose up -d --build           # next(:3000) + ml(:8000)
-npm run capture                        # docs/assets/app-main.png, admin-dashboard.png 등 생성
+npm run dev   # 또는 docker compose up -d --build
+npm run capture
 ```
 
-동일 코드가 CI 의 `next`(typecheck+build)·`docker`(이미지 빌드)·`harness`(앱↔ML 연동 검증) 잡에서
-모두 통과함을 `github-actions.png` 로 확인할 수 있다.
+> 참고: Vercel 배포에는 배포 보호(인증)가 켜져 있어 *배포된* URL 의 외부 자동 캡쳐는 401 로 차단되므로,
+> 앱/관리자 화면은 로컬 실행본을 라이브 Render ML 에 연결해 촬영했다(데이터·동작은 동일).
