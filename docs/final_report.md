@@ -297,6 +297,17 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 
 ![ML 모니터링 대시보드 — 품질 분포 차트 + 재학습 트리거](assets/admin-monitoring.png)
 
+**라이브 검증(배포된 Render ML 에 실제 재학습 트리거)**: v1 → **v2 승격**이 운영 서비스에 반영됨.
+
+```text
+# 재학습 전: champion v1, macro_f1 0.7549 (dataVersion v1)
+$ curl -X POST https://pet-sticker-ml.onrender.com/admin/retrain
+{"promoted":true,"previous_macro_f1":0.7549,"new_macro_f1":0.7813,"champion_version":2,"dataVersion":"v2"}
+# 재학습 후: GET /model/info → version:2, dataVersion:v2, macro_f1:0.7813
+```
+
+즉 **재학습 → 평가 → 챔피언 승격 → 서비스 반영(/model/info)** 전체 루프가 배포 환경에서 동작함을 확인했다.
+
 ---
 
 ### 부록 A. 평가 기준 ↔ 구현 대응표
