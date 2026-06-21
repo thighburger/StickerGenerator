@@ -210,3 +210,14 @@
 .logoutButton:hover {
   background: #e5e7eb;
 }
+
+.statusSelect {
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  padding: 4px 7px;
+  background: #ffffff;
+  color: #374151;
+  cursor: pointer;
+}
