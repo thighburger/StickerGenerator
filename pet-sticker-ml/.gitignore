@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# 가상환경 (로컬 전용, 3.12 권장)
+.venv/
+venv/
+env/
+
+# MLflow 로컬 파일스토어 / 후보·히스토리 (학습/승격으로 재생성)
+mlruns/
+mlartifacts/
+mlflow.db
+.candidate/
+model_history/
+
+# 런타임 로그 (샘플 로그만 커밋)
+logs/*.csv
+!logs/sample_prediction_log.csv
+!logs/sample_feedback_log.csv
+
+.DS_Store
+.env

@@ -1,0 +1,18 @@
+{
+  "orderId": "STK-20260619-AB12",
+  "name": "김보호",
+  "phone": "010-1234-5678",
+  "address": "서울특별시 마포구 멍멍로 12",
+  "memo": "강아지 코를 또렷하게 살려주세요",
+  "createdAt": "2026-06-19T01:11:00.000Z",
+  "photos": ["photo-1-dog.png"],
+  "mlReport": {
+    "status": "ok",
+    "score": 82.4,
+    "qualityClass": "제작 적합",
+    "recommendation": "이미지 품질이 우수합니다. 추가 보정 없이 바로 제작 가능합니다.",
+    "confidence": 0.81,
+    "modelVersion": "v1",
+    "requestId": "a1b2c3d4e5f6"
+  }
+}

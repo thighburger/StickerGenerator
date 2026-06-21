@@ -1,0 +1,48 @@
+{
+  "modelName": "pet-sticker-quality",
+  "alias": "champion",
+  "version": 1,
+  "runId": "408960c1334e4588aec177291f79d1a8",
+  "dataVersion": "v1",
+  "featureNames": [
+    "width",
+    "height",
+    "megapixels",
+    "aspect_ratio",
+    "brightness",
+    "contrast",
+    "sharpness",
+    "colorfulness",
+    "subject_ratio",
+    "edge_density"
+  ],
+  "classes": [
+    "제작 적합",
+    "보정 권장",
+    "재촬영 권장"
+  ],
+  "scoreThresholds": {
+    "pass": 70.0,
+    "retouch": 45.0
+  },
+  "metrics": {
+    "accuracy": 0.7567,
+    "macro_f1": 0.7549,
+    "score_mae": 15.1316,
+    "f1_제작 적합": 0.7737,
+    "f1_보정 권장": 0.7638,
+    "f1_재촬영 권장": 0.7273
+  },
+  "params": {
+    "data_version": "v1",
+    "seed": 42,
+    "n_estimators": 200,
+    "test_size": 0.2,
+    "model_type": "RandomForestClassifier",
+    "feature_count": 10,
+    "n_samples": 1500,
+    "n_train": 1200,
+    "n_test": 300
+  },
+  "trainedAt": "2026-06-19T16:26:56.005227+00:00"
+}

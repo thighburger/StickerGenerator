@@ -21,6 +21,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
+# 관리자 페이지가 신규 환경에서도 렌더되도록 샘플 주문 포함
+COPY --from=builder /app/sample-orders ./sample-orders
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]

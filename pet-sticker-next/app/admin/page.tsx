@@ -1,0 +1,241 @@
+import { promises as fs } from "fs";
+import path from "path";
+
+import Link from "next/link";
+
+import {
+  type LogSummary,
+  type MlReport,
+  type ModelInfo,
+  getLogSummary,
+  getModelInfo,
+  mlServiceUrl,
+} from "@/lib/ml-client";
+import styles from "./admin.module.css";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+type Order = {
+  orderId: string;
+  name?: string;
+  phone?: string;
+  createdAt?: string;
+  photos?: string[];
+  mlReport?: MlReport;
+};
+
+async function readOrders(dir: string): Promise<Order[]> {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const orders: Order[] = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      try {
+        const raw = await fs.readFile(
+          path.join(dir, entry.name, "order.json"),
+          "utf-8",
+        );
+        orders.push(JSON.parse(raw) as Order);
+      } catch {
+        // order.json 누락/손상 주문은 건너뜀
+      }
+    }
+    return orders;
+  } catch {
+    return [];
+  }
+}
+
+function classTone(qualityClass: string): string {
+  if (qualityClass === "제작 적합") return styles.pass;
+  if (qualityClass === "보정 권장") return styles.retouch;
+  return styles.reshoot;
+}
+
+export default async function AdminPage() {
+  const runtimeOrders = await readOrders(path.join(process.cwd(), "orders"));
+  const sampleOrders = runtimeOrders.length
+    ? []
+    : await readOrders(path.join(process.cwd(), "sample-orders"));
+  const usingSamples = runtimeOrders.length === 0 && sampleOrders.length > 0;
+  const orders = [...runtimeOrders, ...sampleOrders].sort((a, b) =>
+    (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
+  );
+
+  const [modelInfo, logSummary] = await Promise.all([
+    getModelInfo(),
+    getLogSummary(),
+  ]);
+
+  // 주문 mlReport 기반 통계 (ML 서비스 미가동에도 동작)
+  const okReports = orders.flatMap((order) =>
+    order.mlReport && order.mlReport.status === "ok" ? [order.mlReport] : [],
+  );
+  const classDist: Record<string, number> = {};
+  let scoreSum = 0;
+  for (const report of okReports) {
+    classDist[report.qualityClass] = (classDist[report.qualityClass] ?? 0) + 1;
+    scoreSum += report.score;
+  }
+  const meanScore = okReports.length
+    ? Math.round((scoreSum / okReports.length) * 10) / 10
+    : null;
+
+  const info: ModelInfo = modelInfo;
+  const logs: LogSummary = logSummary;
+
+  return (
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <h1>운영 관리자 대시보드</h1>
+          <p className={styles.subtitle}>
+            주문별 ML 품질 점수 · 챔피언 모델 버전 · 예측/피드백 로그
+          </p>
+        </div>
+        <Link className={styles.homeLink} href="/">
+          ← 생성기로
+        </Link>
+      </header>
+
+      {/* 챔피언 모델 정보 */}
+      <section className={styles.card}>
+        <h2>챔피언 모델</h2>
+        {info.status === "ok" ? (
+          <div className={styles.modelGrid}>
+            <div>
+              <span className={styles.label}>모델</span>
+              <strong>{info.modelName}</strong>
+            </div>
+            <div>
+              <span className={styles.label}>버전</span>
+              <strong className={styles.modelVersion}>{info.modelVersion}</strong>
+            </div>
+            <div>
+              <span className={styles.label}>데이터</span>
+              <strong>{info.dataVersion}</strong>
+            </div>
+            <div>
+              <span className={styles.label}>macro-F1</span>
+              <strong>{info.metrics?.macro_f1 ?? "-"}</strong>
+            </div>
+            <div>
+              <span className={styles.label}>정확도</span>
+              <strong>{info.metrics?.accuracy ?? "-"}</strong>
+            </div>
+            <div>
+              <span className={styles.label}>학습 시각</span>
+              <strong className={styles.small}>{info.trainedAt}</strong>
+            </div>
+          </div>
+        ) : (
+          <p className={styles.unavailable}>
+            ML 서비스에 연결하지 못했습니다 ({info.reason}). 서비스 주소:{" "}
+            <code>{mlServiceUrl()}</code>
+          </p>
+        )}
+      </section>
+
+      {/* 주문 ML 통계 */}
+      <section className={styles.statRow}>
+        <div className={styles.stat}>
+          <span className={styles.statValue}>{orders.length}</span>
+          <span className={styles.statLabel}>주문 수</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statValue}>{meanScore ?? "-"}</span>
+          <span className={styles.statLabel}>평균 품질점수</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statValue}>{classDist["제작 적합"] ?? 0}</span>
+          <span className={styles.statLabel}>제작 적합</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statValue}>{classDist["보정 권장"] ?? 0}</span>
+          <span className={styles.statLabel}>보정 권장</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statValue}>{classDist["재촬영 권장"] ?? 0}</span>
+          <span className={styles.statLabel}>재촬영 권장</span>
+        </div>
+      </section>
+
+      {/* 주문 목록 */}
+      <section className={styles.card}>
+        <h2>
+          주문 목록 {usingSamples && <span className={styles.sampleTag}>샘플 데이터</span>}
+        </h2>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>주문번호</th>
+                <th>이름</th>
+                <th>생성시각</th>
+                <th>품질판정</th>
+                <th>점수</th>
+                <th>모델버전</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => {
+                const report = order.mlReport;
+                const ok = report?.status === "ok";
+                return (
+                  <tr key={order.orderId}>
+                    <td className={styles.mono}>{order.orderId}</td>
+                    <td>{order.name ?? "-"}</td>
+                    <td className={styles.small}>{order.createdAt ?? "-"}</td>
+                    <td>
+                      {ok ? (
+                        <span className={`${styles.badge} ${classTone(report.qualityClass)}`}>
+                          {report.qualityClass}
+                        </span>
+                      ) : (
+                        <span className={styles.badgeMuted}>미분석</span>
+                      )}
+                    </td>
+                    <td>{ok ? Math.round(report.score) : "-"}</td>
+                    <td className={styles.mono}>{ok ? report.modelVersion : "-"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* 예측/피드백 로그 요약 */}
+      <section className={styles.card}>
+        <h2>운영 로그 요약 (예측 · 피드백)</h2>
+        {logs.status === "ok" ? (
+          <div className={styles.modelGrid}>
+            <div>
+              <span className={styles.label}>예측 요청</span>
+              <strong>{String(logs.prediction_count ?? 0)}건</strong>
+            </div>
+            <div>
+              <span className={styles.label}>평균 점수</span>
+              <strong>{String(logs.mean_score ?? "-")}</strong>
+            </div>
+            <div>
+              <span className={styles.label}>피드백</span>
+              <strong>{String(logs.feedback_count ?? 0)}건</strong>
+            </div>
+            <div>
+              <span className={styles.label}>정정 건수</span>
+              <strong>{String(logs.correction_count ?? 0)}</strong>
+            </div>
+          </div>
+        ) : (
+          <p className={styles.unavailable}>
+            예측 로그 요약을 불러오지 못했습니다 ({logs.reason}). ML 서비스
+            <code> {mlServiceUrl()}/logs/summary </code>
+            가 동작 중인지 확인하세요. 위 주문 통계는 저장된 주문 파일로 계산됩니다.
+          </p>
+        )}
+      </section>
+    </main>
+  );
+}
