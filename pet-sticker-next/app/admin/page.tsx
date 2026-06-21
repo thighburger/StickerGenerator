@@ -1,52 +1,20 @@
-import { promises as fs } from "fs";
-import path from "path";
-
 import Link from "next/link";
 
 import {
   type LogSummary,
-  type MlReport,
   type ModelInfo,
   getLogSummary,
   getModelInfo,
   mlServiceUrl,
 } from "@/lib/ml-client";
+import { DEFAULT_STATUS } from "@/lib/order-status";
+import { listOrders } from "@/lib/order-store";
 import LogoutButton from "./LogoutButton";
+import OrderStatusControl from "./OrderStatusControl";
 import styles from "./admin.module.css";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type Order = {
-  orderId: string;
-  name?: string;
-  phone?: string;
-  createdAt?: string;
-  photos?: string[];
-  mlReport?: MlReport;
-};
-
-async function readOrders(dir: string): Promise<Order[]> {
-  try {
-    const entries = await fs.readdir(dir, { withFileTypes: true });
-    const orders: Order[] = [];
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      try {
-        const raw = await fs.readFile(
-          path.join(dir, entry.name, "order.json"),
-          "utf-8",
-        );
-        orders.push(JSON.parse(raw) as Order);
-      } catch {
-        // order.json 누락/손상 주문은 건너뜀
-      }
-    }
-    return orders;
-  } catch {
-    return [];
-  }
-}
 
 function classTone(qualityClass: string): string {
   if (qualityClass === "제작 적합") return styles.pass;
@@ -55,14 +23,7 @@ function classTone(qualityClass: string): string {
 }
 
 export default async function AdminPage() {
-  const runtimeOrders = await readOrders(path.join(process.cwd(), "orders"));
-  const sampleOrders = runtimeOrders.length
-    ? []
-    : await readOrders(path.join(process.cwd(), "sample-orders"));
-  const usingSamples = runtimeOrders.length === 0 && sampleOrders.length > 0;
-  const orders = [...runtimeOrders, ...sampleOrders].sort((a, b) =>
-    (b.createdAt ?? "").localeCompare(a.createdAt ?? ""),
-  );
+  const { orders, usingSamples } = await listOrders();
 
   const [modelInfo, logSummary] = await Promise.all([
     getModelInfo(),
@@ -180,6 +141,7 @@ export default async function AdminPage() {
                 <th>품질판정</th>
                 <th>점수</th>
                 <th>모델버전</th>
+                <th>주문상태</th>
               </tr>
             </thead>
             <tbody>
@@ -202,6 +164,14 @@ export default async function AdminPage() {
                     </td>
                     <td>{ok ? Math.round(report.score) : "-"}</td>
                     <td className={styles.mono}>{ok ? report.modelVersion : "-"}</td>
+                    <td>
+                      <OrderStatusControl
+                        orderId={order.orderId}
+                        status={order.status ?? DEFAULT_STATUS}
+                        readOnly={usingSamples}
+                        className={styles.statusSelect}
+                      />
+                    </td>
                   </tr>
                 );
               })}

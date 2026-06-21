@@ -5,7 +5,10 @@
   "address": "부산광역시 해운대구 댕댕길 7",
   "memo": "고양이 두 마리 함께 넣어주세요",
   "createdAt": "2026-06-19T01:14:30.000Z",
-  "photos": ["photo-1-cat.png", "photo-2-cat.png"],
+  "photos": [
+    "photo-1-cat.png",
+    "photo-2-cat.png"
+  ],
   "mlReport": {
     "status": "ok",
     "score": 58.1,
@@ -14,5 +17,6 @@
     "confidence": 0.69,
     "modelVersion": "v1",
     "requestId": "b2c3d4e5f6a1"
-  }
+  },
+  "status": "제작중"
 }

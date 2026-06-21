@@ -4,6 +4,7 @@ import path from "path";
 import { NextResponse } from "next/server";
 
 import { type MlReport, requestQualityPrediction } from "@/lib/ml-client";
+import { DEFAULT_STATUS } from "@/lib/order-status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
     address: String(form.get("address") ?? ""),
     memo: String(form.get("memo") ?? ""),
     createdAt: new Date().toISOString(),
+    status: DEFAULT_STATUS,
     photos: [] as string[],
     mlReport: { status: "unavailable", reason: "예측 미수행" } as MlReport,
   };
