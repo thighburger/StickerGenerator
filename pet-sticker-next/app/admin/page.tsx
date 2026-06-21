@@ -11,7 +11,10 @@ import { DEFAULT_STATUS } from "@/lib/order-status";
 import { listOrders } from "@/lib/order-store";
 import LogoutButton from "./LogoutButton";
 import OrderStatusControl from "./OrderStatusControl";
+import RetrainButton from "./RetrainButton";
 import styles from "./admin.module.css";
+
+const QUALITY_CLASSES = ["제작 적합", "보정 권장", "재촬영 권장"] as const;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,6 +49,15 @@ export default async function AdminPage() {
 
   const info: ModelInfo = modelInfo;
   const logs: LogSummary = logSummary;
+
+  // 모니터링 차트 데이터: 예측 로그(class_counts) 우선, 없으면 주문 mlReport 기반
+  const logsOk = logs.status === "ok" ? (logs as Record<string, unknown>) : null;
+  const logCounts = (logsOk?.class_counts as Record<string, number> | undefined) ?? null;
+  const chartCounts: Record<string, number> = logCounts ?? classDist;
+  const chartMax = Math.max(1, ...QUALITY_CLASSES.map((c) => chartCounts[c] ?? 0));
+  const chartTotal = QUALITY_CLASSES.reduce((sum, c) => sum + (chartCounts[c] ?? 0), 0);
+  const chartMeanScore =
+    logsOk && typeof logsOk.mean_score === "number" ? (logsOk.mean_score as number) : meanScore;
 
   return (
     <main className={styles.page}>
@@ -123,6 +135,48 @@ export default async function AdminPage() {
         <div className={styles.stat}>
           <span className={styles.statValue}>{classDist["재촬영 권장"] ?? 0}</span>
           <span className={styles.statLabel}>재촬영 권장</span>
+        </div>
+      </section>
+
+      {/* ML 모니터링 + 재학습 트리거 */}
+      <section className={styles.card}>
+        <div className={styles.monitorHead}>
+          <h2>ML 모니터링 · 재학습</h2>
+          <RetrainButton
+            className={styles.retrain}
+            buttonClassName={styles.retrainButton}
+            resultClassName={styles.retrainResult}
+          />
+        </div>
+        <div className={styles.chartGrid}>
+          <div>
+            <div className={styles.chartTitle}>품질 판정 분포 ({chartTotal}건)</div>
+            <div className={styles.bars}>
+              {QUALITY_CLASSES.map((c) => {
+                const count = chartCounts[c] ?? 0;
+                const pct = Math.round((count / chartMax) * 100);
+                return (
+                  <div className={styles.barRow} key={c}>
+                    <span className={styles.barLabel}>{c}</span>
+                    <div className={styles.barTrack}>
+                      <div
+                        className={`${styles.barFill} ${classTone(c)}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className={styles.barCount}>{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className={styles.scoreBox}>
+            <span className={styles.label}>평균 품질점수</span>
+            <strong className={styles.scoreBig}>{chartMeanScore ?? "-"}</strong>
+            <span className={styles.small}>
+              챔피언 {info.status === "ok" ? info.modelVersion : "-"}
+            </span>
+          </div>
         </div>
       </section>
 

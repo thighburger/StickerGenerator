@@ -120,4 +120,31 @@ def create_app(champion_dir=None, log_dir=None) -> FastAPI:
     def logs_summary() -> dict:
         return summarize_logs(log_dir=app.state.log_dir)
 
+    @app.post("/admin/retrain")
+    def admin_retrain() -> dict:
+        # 데이터 v2 로 재학습 → 평가 → 개선 시 챔피언 승격 → 챔피언 reload.
+        # 운영 대시보드의 "재학습 트리거" 버튼이 호출한다.
+        before = load_metadata(app.state.champion_dir)
+        before_f1 = before.get("metrics", {}).get("macro_f1") if before else None
+        try:
+            from .retrain import retrain as run_retrain
+
+            decision = run_retrain(data_version="v2", min_delta=0.0, regenerate=True)
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(status_code=500, detail=f"재학습 실패: {exc}") from exc
+
+        app.state.predictor = None
+        try:
+            get_predictor()
+        except Exception as exc:  # noqa: BLE001
+            print(f"[api] 재학습 후 챔피언 reload 경고: {exc}")
+        after = load_metadata(app.state.champion_dir)
+        return {
+            "promoted": bool(decision.get("promotion", {}).get("promoted")),
+            "previous_macro_f1": before_f1,
+            "new_macro_f1": after.get("metrics", {}).get("macro_f1") if after else None,
+            "champion_version": after.get("version") if after else None,
+            "dataVersion": after.get("dataVersion") if after else None,
+        }
+
     return app
