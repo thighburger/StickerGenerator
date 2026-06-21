@@ -20,13 +20,25 @@
   **운영 파이프라인**을 구현하는 것이 목표다.
 - **GitHub 주소**: https://github.com/thighburger/StickerGenerator (public)
 - **배포 주소 및 캡쳐**:
-  - 웹 앱(Next.js) — Vercel: 중간 프로젝트에서 사용한 Vercel 프로젝트에 그대로 배포.
-    `ML_SERVICE_URL` 환경변수로 ML 서비스와 연결. (캡쳐: `docs/assets/app-main.png`)
-  - ML 추론 서비스(FastAPI) — Render(Docker): `render.yaml` 블루프린트로 배포, `/health` 로 확인.
+  - **ML 추론 서비스(FastAPI) — Render(Docker): https://pet-sticker-ml.onrender.com** ← **라이브 배포 완료·외부 접속 확인됨**.
+    `render.yaml` 블루프린트로 `main` 브랜치에서 자동 배포(Region: Oregon). `/health`·`/model/info`·`/docs` 정상 응답.
+  - 웹 앱(Next.js) — Vercel: `main` 브랜치 자동 배포(빌드 성공). 환경변수 `ML_SERVICE_URL` = 위 Render URL 로 ML 연결.
 
-> **캡쳐 안내**: ML 서비스·MLflow·CI 화면 캡쳐는 `docs/assets/` 에 포함했다(각 절 참조).
-> 웹 앱 메인·관리자 화면 캡쳐는 로컬에서 `docker compose up -d` 후 `npm run capture` 로 생성한다
-> (작성 환경 제약은 **부록 B** 참조).
+배포 확인 — 실제 외부 응답:
+
+```text
+$ curl https://pet-sticker-ml.onrender.com/health
+{"status":"ok","modelLoaded":true,"modelVersion":"v1"}
+$ curl https://pet-sticker-ml.onrender.com/model/info
+{"modelName":"pet-sticker-quality","alias":"champion","version":1,"dataVersion":"v1", ...}
+```
+
+![Render 배포 /health 외부 응답](assets/deploy-render-health.png)
+
+![Render 배포 FastAPI Swagger(/docs)](assets/deploy-render-docs.png)
+
+> **캡쳐 안내**: ML 서비스(라이브 Render)·MLflow·CI 화면 캡쳐는 `docs/assets/` 에 포함했다(각 절 참조).
+> 웹 앱 메인·관리자 화면 캡쳐는 부록 B 참조(Vercel 배포 보호로 외부 자동 캡쳐 불가 → 로컬 `npm run capture` 로 생성).
 
 ## 2. 소프트웨어 주요 기능
 
@@ -237,18 +249,21 @@ ML 기능과 일반 서비스 기능을 분리해 정리한다.
 | `model-info.png` | 챔피언 모델 정보 API(버전·alias·metric·featureNames) |
 | `logs-summary.png` | 예측/피드백 로그 요약(운영 로그) |
 | `fastapi-docs.png` | FastAPI 추론 서비스 Swagger 문서 |
-| `health.png` | 서비스 상태(`/health`) |
+| `health.png` | 서비스 상태(`/health`, 로컬) |
 | `github-actions.png` | CI 전체 잡 통과(next·ml·docker·harness) + workflow 그래프 |
+| `deploy-render-health.png` | **라이브 Render 배포** `/health` 외부 응답 |
+| `deploy-render-docs.png` | **라이브 Render 배포** FastAPI Swagger(`/docs`) |
 
-웹 앱 메인/관리자 화면 캡쳐는 아래로 생성한다(캡쳐 자동화 스크립트 제공):
+**실제 외부 배포 완료**: ML 서비스는 Render 에 라이브 배포되어 https://pet-sticker-ml.onrender.com 으로
+외부에서 접속·동작이 확인된다(위 캡쳐 2종). 웹 앱(Next.js)도 Vercel `main` 에 자동 배포되어 빌드 성공 상태다.
+
+**웹 앱 메인/관리자 화면 캡쳐만 미포함(정직 보고)**: Vercel 배포에 **배포 보호(인증)**가 켜져 있어
+외부 자동 캡쳐(401)가 차단된다. 로그인 상태에서는 정상 접속되며, 화면 캡쳐는 아래로도 재현 가능하다.
 
 ```bash
 docker compose up -d --build           # next(:3000) + ml(:8000)
 npm run capture                        # docs/assets/app-main.png, admin-dashboard.png 등 생성
 ```
 
-**미포함 사유(정직 보고)**: 보고서 작성 환경의 디스크가 100% 가득 차 로컬 Next 프로덕션 빌드가
-불가했고, Vercel 프리뷰 배포에는 배포 보호(SSO 로그인)가 설정되어 자동 캡쳐가 차단되었다.
-대신 **동일 코드**가 CI 의 `next`(typecheck+build)·`docker`(이미지 빌드)·`harness`(앱↔ML 연동
-검증) 잡에서 모두 통과함을 `github-actions.png` 로 확인할 수 있으며, 앱 메인/관리자 화면은 위
-명령으로 누구나 재현·캡쳐할 수 있다.
+동일 코드가 CI 의 `next`(typecheck+build)·`docker`(이미지 빌드)·`harness`(앱↔ML 연동 검증) 잡에서
+모두 통과함을 `github-actions.png` 로 확인할 수 있다.
