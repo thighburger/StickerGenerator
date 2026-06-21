@@ -757,3 +757,58 @@
   font-weight: 700;
   color: #6b7280;
 }
+
+/* ML 피드백 위젯 (human-in-the-loop) */
+.feedback {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e4e8ef;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.feedbackLabel {
+  font-size: 12px;
+  font-weight: 800;
+  color: #374151;
+}
+
+.feedbackButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.feedbackYes,
+.feedbackNo {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 6px 11px;
+  cursor: pointer;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+.feedbackYes {
+  border-color: #b7e4c7;
+  background: #f1fbf4;
+  color: #11724b;
+}
+
+.feedbackNo {
+  color: #6b7280;
+}
+
+.feedbackYes:hover { background: #e7f7ed; }
+.feedbackNo:hover { background: #f3f4f6; }
+
+.feedbackDone {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e4e8ef;
+  font-size: 12px;
+  font-weight: 700;
+  color: #11724b;
+}
