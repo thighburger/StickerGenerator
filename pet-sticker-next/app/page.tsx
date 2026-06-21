@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChangeEvent, DragEvent, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
 import type { MlReport } from "@/lib/ml-client";
+import MlFeedback from "./components/MlFeedback";
 
 const MAX_UPLOADS = 5;
 const STICKERS_PER_SHEET = 10;
@@ -783,6 +784,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [orderNotice, setOrderNotice] = useState("");
   const [mlReport, setMlReport] = useState<MlReport | null>(null);
+  const [lastOrderId, setLastOrderId] = useState<string>("");
   const [orderForm, setOrderForm] = useState<OrderForm>({
     name: "",
     phone: "",
@@ -991,6 +993,7 @@ export default function Home() {
       const result = await response.json().catch(() => null);
       if (result?.mlReport) {
         setMlReport(result.mlReport as MlReport);
+        setLastOrderId((result?.orderId as string) ?? orderId);
       }
     } catch (caught) {
       const message =
@@ -1266,6 +1269,11 @@ export default function Home() {
                   <span>모델 {mlReport.modelVersion}</span>
                   <span>신뢰도 {Math.round(mlReport.confidence * 100)}%</span>
                 </div>
+                <MlFeedback
+                  requestId={mlReport.requestId}
+                  predictedClass={mlReport.qualityClass}
+                  orderId={lastOrderId}
+                />
               </div>
             )}
             {mlReport && mlReport.status === "unavailable" && (
