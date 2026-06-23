@@ -8,7 +8,7 @@
 
 .header {
   display: grid;
-  grid-template-columns: 220px 1fr auto;
+  grid-template-columns: 220px 1fr;
   align-items: center;
   min-height: 74px;
   padding: 0 36px;
@@ -18,7 +18,6 @@
 }
 
 .brand,
-.profile,
 .nav {
   display: flex;
   align-items: center;
@@ -31,8 +30,7 @@
   font-weight: 900;
 }
 
-.logoMark,
-.avatar {
+.logoMark {
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -64,38 +62,6 @@
 
 .nav a:hover {
   color: #08a865;
-}
-
-.profile {
-  gap: 14px;
-  color: #293241;
-  font-weight: 800;
-}
-
-.bell {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid #dbe4ea;
-  border-radius: 999px;
-  background: #fff;
-  color: #ef4456;
-  font-size: 12px;
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  background: linear-gradient(135deg, #fff2d8, #f6d3b6);
-  color: #8a4c24;
-  font-size: 14px;
-}
-
-.chevron {
-  color: #718094;
-  font-size: 18px;
 }
 
 .shell {
@@ -281,20 +247,6 @@
 .error {
   color: #d33b56;
   font-weight: 800;
-}
-
-.testPanel {
-  display: grid;
-  gap: 10px;
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid #e6edf1;
-}
-
-.testTitle {
-  color: #263140;
-  font-size: 14px;
-  font-weight: 900;
 }
 
 .progressPanel {
@@ -681,8 +633,7 @@
     padding: 18px;
   }
 
-  .nav,
-  .profile {
+  .nav {
     justify-content: flex-start;
     gap: 18px;
     overflow-x: auto;
