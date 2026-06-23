@@ -6,9 +6,11 @@
   "scripts": {
     "harness": "node scripts/final-harness.mjs",
     "harness:full": "node scripts/final-harness.mjs --full",
-    "capture": "node scripts/capture-report-screenshots.mjs"
+    "capture": "node scripts/capture-report-screenshots.mjs",
+    "report:pdf": "node scripts/build-report-pdf.mjs"
   },
   "devDependencies": {
+    "marked": "^18.0.5",
     "playwright": "^1.61.0"
   }
 }
