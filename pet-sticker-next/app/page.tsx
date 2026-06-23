@@ -778,7 +778,6 @@ async function drawSheet(canvas: HTMLCanvasElement, cutouts: Cutout[]) {
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [files, setFiles] = useState<File[]>([]);
-  const [testFiles, setTestFiles] = useState<File[]>([]);
   const [cutouts, setCutouts] = useState<Cutout[]>([]);
   const [status, setStatus] = useState("Upload up to 5 dog photos.");
   const [error, setError] = useState("");
@@ -813,21 +812,6 @@ export default function Home() {
     setStatus(
       selected.length
         ? `${selected.length} image(s) selected.`
-        : "Upload up to 5 dog photos."
-    );
-  }
-
-  function handleTestFiles(event: ChangeEvent<HTMLInputElement>) {
-    const imageFiles = Array.from(event.target.files ?? [])
-      .filter((file) => file.type.startsWith("image/"))
-      .slice(0, MAX_UPLOADS);
-    setTestFiles(imageFiles);
-    setCutouts([]);
-    setError("");
-    setOrderNotice("");
-    setStatus(
-      imageFiles.length
-        ? `${imageFiles.length} transparent test image(s) selected.`
         : "Upload up to 5 dog photos."
     );
   }
@@ -907,38 +891,6 @@ export default function Home() {
         caught instanceof Error
           ? caught.message
           : "Could not generate sticker sheet.";
-      setError(message);
-      setStatus("Generation failed.");
-    } finally {
-      setIsGenerating(false);
-    }
-  }
-
-  async function generateFromTransparentImages() {
-    if (testFiles.length === 0) {
-      setError("Choose at least one transparent PNG test image.");
-      return;
-    }
-
-    setIsGenerating(true);
-    setError("");
-
-    try {
-      const nextCutouts = testFiles.map((file) => ({
-        name: file.name,
-        url: URL.createObjectURL(file),
-      }));
-      setStatus("Drawing 10 stickers from transparent test images...");
-      setCutouts(nextCutouts);
-      const canvas = canvasRef.current;
-      if (!canvas) throw new Error("Canvas is not ready.");
-      const fill = await drawSheet(canvas, nextCutouts);
-      setStatus(`Test sticker sheet ready. Fill ${Math.round(fill * 100)}%.`);
-    } catch (caught) {
-      const message =
-        caught instanceof Error
-          ? caught.message
-          : "Could not generate test sticker sheet.";
       setError(message);
       setStatus("Generation failed.");
     } finally {
@@ -1049,11 +1001,6 @@ export default function Home() {
           <Link href="/admin">주문·관리</Link>
           <a>제작 가이드</a>
         </nav>
-        <div className={styles.profile}>
-          <span className={styles.avatar}>멍</span>
-          <span>멍멍이맘</span>
-          <span className={styles.chevron}>⌄</span>
-        </div>
       </header>
 
       <div className={styles.shell}>
@@ -1125,24 +1072,6 @@ export default function Home() {
 
           <div className={`${styles.status} ${error ? styles.error : ""}`}>
             {error || status}
-          </div>
-
-          <div className={styles.testPanel}>
-            <div className={styles.testTitle}>배경제거 완료 이미지 테스트</div>
-            <input
-              className={styles.fileInput}
-              type="file"
-              accept="image/png,image/webp"
-              multiple
-              onChange={handleTestFiles}
-            />
-            <button
-              className={styles.secondary}
-              disabled={isGenerating || testFiles.length === 0}
-              onClick={generateFromTransparentImages}
-            >
-              테스트 시안 생성
-            </button>
           </div>
         </section>
 
