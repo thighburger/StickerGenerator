@@ -360,14 +360,6 @@ $ curl -X POST https://pet-sticker-ml.onrender.com/admin/retrain
 | `admin-monitoring.png` | ML 모니터링 대시보드(품질 분포 차트 + 재학습 트리거) |
 
 **실제 외부 배포 완료**: ML 서비스는 Render 에 라이브 배포되어 https://pet-sticker-ml.onrender.com 으로
-외부에서 접속·동작이 확인된다. 웹 앱(Next.js)도 Vercel `main` 에 자동 배포되어 빌드 성공 상태다.
+외부에서 접속·동작이 확인된다. 웹 앱(Next.js)도 Vercel `main` 에 자동 배포되어 동작한다.
 
-캡쳐는 모두 자동화 스크립트로 생성한다(로컬에서 앱을 띄우고 Playwright 로 촬영):
-
-```bash
-npm run dev   # 또는 docker compose up -d --build
-npm run capture
-```
-
-> 참고: Vercel 배포에는 배포 보호(인증)가 켜져 있어 *배포된* URL 의 외부 자동 캡쳐는 401 로 차단되므로,
-> 앱/관리자 화면은 로컬 실행본을 라이브 Render ML 에 연결해 촬영했다(데이터·동작은 동일).
+> 캡쳐는 `npm run capture`(Playwright) 로 재생성할 수 있다.
