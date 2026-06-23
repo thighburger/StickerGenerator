@@ -1050,7 +1050,6 @@ export default function Home() {
           <a>제작 가이드</a>
         </nav>
         <div className={styles.profile}>
-          <span className={styles.bell}>3</span>
           <span className={styles.avatar}>멍</span>
           <span>멍멍이맘</span>
           <span className={styles.chevron}>⌄</span>
@@ -1155,7 +1154,7 @@ export default function Home() {
             <small>귀여운 시안이 곧 완성돼요.</small>
           </div>
           <div className={styles.progressRing}>
-            <div className={styles.ringInner}>발</div>
+            <div className={styles.ringInner}>🐾</div>
           </div>
           <div className={styles.progressBar}>
             <span
@@ -1172,8 +1171,6 @@ export default function Home() {
                 : "사진을 올리고 시안을 생성하세요"}
           </div>
           <div className={styles.decorOne}>✦</div>
-          <div className={styles.decorTwo}>발</div>
-          <div className={styles.groundDog} />
         </section>
 
         <aside className={styles.previewPanel}>
